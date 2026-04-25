@@ -1,11 +1,11 @@
 'use client'
 
-import { PageContainer } from '@/_components/page-container'
-import { SectionCard } from '@/_components/section-card'
 import { Button } from '@/components/ui/button'
 import { StatsGrid } from './_components/stats-grid'
 import { RecentActivity } from './_components/recent-activity'
 import { Plus, UserPlus, FileText, Bell } from 'lucide-react'
+import { PageContainer } from '../_components/page-container'
+import { SectionCard } from '../_components/section-card'
 
 export default function OverviewPage() {
   const quickActions = [
