@@ -1,13 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { PageContainer } from '@/_components/page-container'
-import { PageHeader } from '@/_components/page-header'
-import { SectionCard } from '@/_components/section-card'
 import { CreateAssignmentModal, CreateAssignmentData } from './_components/create-assignment-modal'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { CheckCircle2, Clock, AlertCircle, Calendar } from 'lucide-react'
+import { PageContainer } from '../_components/page-container'
+import { PageHeader } from '../_components/page-header'
 
 type SubmissionStatus = 'submitted' | 'pending' | 'overdue'
 

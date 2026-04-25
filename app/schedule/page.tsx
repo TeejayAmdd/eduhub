@@ -1,10 +1,10 @@
 'use client'
 
-import { PageContainer } from '@/_components/page-container'
-import { PageHeader } from '@/_components/page-header'
-import { SectionCard } from '@/_components/section-card'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { PageContainer } from '../_components/page-container'
+import { PageHeader } from '../_components/page-header'
+import { SectionCard } from '../_components/section-card'
 
 interface TimeSlot {
   day: string

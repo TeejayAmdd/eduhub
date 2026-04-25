@@ -1,7 +1,5 @@
 'use client'
 
-import { PageContainer } from '@/_components/page-container'
-import { SectionCard } from '@/_components/section-card'
 import { Card } from '@/components/ui/card'
 import {
   LineChart,
@@ -18,6 +16,8 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts'
+import { PageContainer } from '../_components/page-container'
+import { SectionCard } from '../_components/section-card'
 
 // Mock data for attendance trends
 const attendanceTrends = [

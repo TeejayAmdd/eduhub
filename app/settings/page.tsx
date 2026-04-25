@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { PageContainer } from '@/_components/page-container'
-import { SectionCard } from '@/_components/section-card'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { PageContainer } from '../_components/page-container'
+import { SectionCard } from '../_components/section-card'
 
 const SettingsPage = () => {
   const [profile, setProfile] = useState({
@@ -31,7 +31,7 @@ const SettingsPage = () => {
     setSaved(false)
   }
 
-  const handlePreferenceChange = (key: string) => {
+  const handlePreferenceChange = (key: keyof typeof preferences) => {
     setPreferences((prev) => ({ ...prev, [key]: !prev[key] }))
     setSaved(false)
   }

@@ -1,9 +1,6 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { PageContainer } from '@/_components/page-container'
-import { PageHeader } from '@/_components/page-header'
-import { SectionCard } from '@/_components/section-card'
 import { StudentProfileCard } from './_components/student-profile-card'
 import { Input } from '@/components/ui/input'
 import {
@@ -17,6 +14,9 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Search, Filter } from 'lucide-react'
+import { PageContainer } from '../_components/page-container'
+import { PageHeader } from '../_components/page-header'
+import { SectionCard } from '../_components/section-card'
 
 interface Student {
   id: number

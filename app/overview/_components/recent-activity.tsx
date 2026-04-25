@@ -1,7 +1,6 @@
 'use client'
-
-import { SectionCard } from '@/_components/section-card'
-import { EmptyState } from '@/_components/empty-state'
+import { EmptyState } from '@/app/_components/empty-state'
+import { SectionCard } from '@/app/_components/section-card'
 import { Button } from '@/components/ui/button'
 import { Clock, User, BookOpen, CheckCircle2 } from 'lucide-react'
 
@@ -61,7 +60,7 @@ export function RecentActivity() {
         <EmptyState
           title="No recent activity"
           description="Activity updates will appear here"
-          icon={Clock}
+          icon={<Clock className="w-4 h-4" />}
         />
       </SectionCard>
     )
