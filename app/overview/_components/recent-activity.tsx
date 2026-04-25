@@ -1,8 +1,9 @@
 'use client'
 import { EmptyState } from '@/app/_components/empty-state'
 import { SectionCard } from '@/app/_components/section-card'
-import { Button } from '@/components/ui/button'
-import { Clock, User, BookOpen, CheckCircle2 } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Clock, User, BookOpen, CheckCircle2, Bell } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface Activity {
   id: string
@@ -13,6 +14,13 @@ interface Activity {
   timestamp: string
   icon: React.ReactNode
 }
+
+const typeStyles = {
+  assignment: 'bg-blue-500/10 text-blue-700 dark:text-blue-400',
+  attendance: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+  exam: 'bg-violet-500/10 text-violet-700 dark:text-violet-400',
+  announcement: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
+} as const
 
 export function RecentActivity() {
   const activities: Activity[] = [
@@ -67,26 +75,40 @@ export function RecentActivity() {
   }
 
   return (
-    <SectionCard title="Recent Activity">
-      <div className="space-y-4">
+    <SectionCard
+      title="Recent Activity"
+      subtitle="The latest updates from classes, assignments, and alerts."
+      contentClassName="pt-0"
+    >
+      <div className="space-y-3">
         {activities.map((activity) => (
           <div
             key={activity.id}
-            className="flex gap-4 pb-4 border-b border-border last:border-b-0 last:pb-0"
+            className="flex gap-4 rounded-2xl border border-border bg-background p-4 shadow-sm"
           >
-            <div className="flex-shrink-0 mt-1">{activity.icon}</div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="font-medium text-sm">{activity.title}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
+            <div
+              className={cn(
+                'flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border',
+                typeStyles[activity.type],
+              )}
+            >
+              {activity.icon}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{activity.title}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
                     {activity.description}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    by {activity.user} · {activity.timestamp}
-                  </p>
                 </div>
+                <Badge variant="outline" className="rounded-full text-[10px] uppercase tracking-wide">
+                  {activity.type}
+                </Badge>
               </div>
+              <p className="mt-3 text-xs text-muted-foreground">
+                by {activity.user} · {activity.timestamp}
+              </p>
             </div>
           </div>
         ))}
