@@ -11,13 +11,13 @@ import {
   MessageSquare,
   Settings,
   Users,
-  OverviewIcon,
+  Home,
   ClipboardList,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navigationItems = [
-  { name: 'Overview', href: '/overview', icon: OverviewIcon },
+  { name: 'Overview', href: '/overview', icon: Home },
   { name: 'Class Preparation', href: '/class-preparation', icon: BookOpen },
   { name: 'Attendance', href: '/attendance', icon: Users },
   { name: 'Exams', href: '/exams', icon: CheckSquare },
