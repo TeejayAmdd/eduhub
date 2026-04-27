@@ -13,6 +13,7 @@ ENV/
 
 # Environment variables — NEVER commit this
 .env
+.env*.local
 
 # Database files
 *.db
@@ -34,3 +35,14 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+
+# v0 / Next.js
+__v0_runtime_loader.js
+__v0_devtools.tsx
+__v0_jsx-dev-runtime.ts
+.snowflake/
+.v0-trash/
+.vercel/
+next.user-config.*
+node_modules
+.next/

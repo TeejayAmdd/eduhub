@@ -1,6 +1,8 @@
-# EduHub Backend
+# EduHub LMS — Backend
 
-FastAPI + PostgreSQL backend for the EduHub LMS.
+FastAPI + PostgreSQL backend for the EduHub Learning Management System.
+
+> **Frontend** lives at [v0-learning-manage.vercel.app](https://v0-learning-manage.vercel.app) and is managed via [v0.app](https://v0.app/chat/projects/prj_B2qxi9W9MQWofa0TD0UAo7RA1QUI).
 
 ## Setup
 
@@ -16,11 +18,13 @@ venv\Scripts\activate           # Windows
 pip install -r requirements.txt
 ```
 
-### 3. Set up PostgreSQL
-Create a database called `eduhub` in PostgreSQL, then update `.env`:
+### 3. Configure environment
+Copy `.env.example` to `.env` and fill in:
 ```
 DATABASE_URL=postgresql://postgres:yourpassword@localhost:5432/eduhub
 SECRET_KEY=pick-any-long-random-string
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=60
 ```
 
 ### 4. Run the server
@@ -28,44 +32,37 @@ SECRET_KEY=pick-any-long-random-string
 uvicorn main:app --reload
 ```
 
-### 5. Open API docs
-Visit http://localhost:8000/docs — Swagger UI is auto-generated.
+Visit http://localhost:8000/docs for the Swagger UI.
 
 ## Project structure
 ```
 eduhub/
-├── main.py                  # App entry point
+├── main.py
 ├── requirements.txt
-├── .env                     # Your secrets (never commit this)
+├── Procfile               # Railway deploy
+├── railway.toml
 └── app/
-    ├── config.py            # Loads .env variables
-    ├── database.py          # DB engine and session
-    ├── models.py            # All SQLAlchemy models
-    ├── schemas.py           # All Pydantic request/response shapes
-    ├── auth.py              # JWT + password hashing
+    ├── config.py
+    ├── database.py
+    ├── models.py
+    ├── schemas.py
+    ├── auth.py
     └── routers/
-        ├── auth.py          # POST /api/auth/register, /login
-        ├── students.py      # GET/POST /api/students
-        ├── assignments.py   # CRUD /api/assignments
-        └── other_routers.py # classes, attendance, schedule, exams, messages, analytics
+        ├── auth.py
+        ├── students.py
+        ├── assignments.py
+        └── other_routers.py
 ```
 
-## API endpoints summary
+## API endpoints
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | /api/auth/register | Create account |
 | POST | /api/auth/login | Get JWT token |
 | GET | /api/students | List all students |
-| GET | /api/students/class/{id} | Students in a class |
 | POST | /api/students/enroll | Enroll student in class |
 | GET | /api/assignments | List assignments |
 | POST | /api/assignments | Create assignment |
 | POST | /api/assignments/{id}/submit | Submit assignment |
-| POST | /api/attendance/bulk | Mark attendance for whole class |
-| GET | /api/attendance/class/{id} | Get class attendance |
-| GET | /api/schedule/today | Today's classes |
-| POST | /api/exams | Create exam |
-| POST | /api/exams/results | Record exam result |
-| GET | /api/messages/inbox | Get inbox |
-| POST | /api/messages | Send message |
+| POST | /api/attendance/bulk | Mark attendance |
 | GET | /api/analytics/dashboard | Dashboard stats |
