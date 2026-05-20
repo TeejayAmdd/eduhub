@@ -1,142 +1,116 @@
 'use client'
 
-import { useState } from 'react'
-import { CreateAssignmentModal, CreateAssignmentData } from './_components/create-assignment-modal'
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { CheckCircle2, Clock, AlertCircle, Calendar } from 'lucide-react'
+import { CheckCircle2, Clock, AlertCircle, Calendar, ChevronRight, Upload } from 'lucide-react'
 import { PageContainer } from '../_components/page-container'
 import { PageHeader } from '../_components/page-header'
-
-type SubmissionStatus = 'submitted' | 'pending' | 'overdue'
-
-interface Assignment {
-  id: number
-  title: string
-  class: string
-  dueDate: string
-  description: string
-  submissions: {
-    submitted: number
-    pending: number
-    overdue: number
-  }
-  totalStudents: number
-}
+import { CreateAssignmentModal, CreateAssignmentData } from './_components/create-assignment-modal'
+import { assignments, classes, SUBMISSION_TYPES, type Assignment, type Class } from '@/lib/api'
 
 export default function AssignmentsPage() {
-  const [assignments, setAssignments] = useState<Assignment[]>([
-    {
-      id: 1,
-      title: 'Quadratic Equations Worksheet',
-      class: 'Class 10-A',
-      dueDate: '2024-01-20',
-      description: 'Solve 20 quadratic equations using different methods',
-      submissions: { submitted: 28, pending: 8, overdue: 4 },
-      totalStudents: 40,
-    },
-    {
-      id: 2,
-      title: 'Essay: Modern Literature',
-      class: 'Class 11-B',
-      dueDate: '2024-01-18',
-      description: 'Write a 1500-word essay on contemporary authors',
-      submissions: { submitted: 32, pending: 2, overdue: 6 },
-      totalStudents: 40,
-    },
-    {
-      id: 3,
-      title: 'Science Lab Report',
-      class: 'Class 10-B',
-      dueDate: '2024-01-22',
-      description: 'Complete the acid-base reaction lab and document results',
-      submissions: { submitted: 18, pending: 18, overdue: 2 },
-      totalStudents: 38,
-    },
-  ])
+  const [data, setData] = useState<Assignment[]>([])
+  const [classList, setClassList] = useState<Class[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const handleCreateAssignment = (data: CreateAssignmentData) => {
-    const newAssignment: Assignment = {
-      id: assignments.length + 1,
-      title: data.title,
-      class: data.class,
-      dueDate: data.dueDate,
-      description: data.description,
-      submissions: { submitted: 0, pending: 30, overdue: 0 },
-      totalStudents: 30,
-    }
-    setAssignments([newAssignment, ...assignments])
+  useEffect(() => {
+    Promise.all([assignments.list(), classes.list()])
+      .then(([a, c]) => { setData(a); setClassList(c) })
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [])
+
+  const handleCreate = async (formData: CreateAssignmentData) => {
+    const created = await assignments.create({
+      title: formData.title,
+      description: formData.description,
+      class_id: formData.classId,
+      due_date: new Date(formData.dueDate).toISOString(),
+      submission_type: formData.submissionType,
+    })
+    setData((prev) => [created, ...prev])
   }
 
-  const getStatusIndicator = (assignment: Assignment) => {
-    const { submitted, pending, overdue } = assignment.submissions
-    const submissionRate = Math.round((submitted / assignment.totalStudents) * 100)
-
-    return (
-      <div className="space-y-2">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Submission Rate</span>
-          <span className="font-semibold">{submissionRate}%</span>
-        </div>
-        <div className="flex gap-2">
-          <div className="flex items-center gap-1 text-xs text-green-600">
-            <CheckCircle2 className="w-4 h-4" />
-            {submitted} submitted
-          </div>
-          <div className="flex items-center gap-1 text-xs text-amber-600">
-            <Clock className="w-4 h-4" />
-            {pending} pending
-          </div>
-          {overdue > 0 && (
-            <div className="flex items-center gap-1 text-xs text-red-600">
-              <AlertCircle className="w-4 h-4" />
-              {overdue} overdue
-            </div>
-          )}
-        </div>
-      </div>
-    )
-  }
+  const className = (id: number) => classList.find((c) => c.id === id)?.name ?? `Course ${id}`
+  const submissionLabel = (type: string) =>
+    SUBMISSION_TYPES.find((t) => t.value === type)?.label ?? type
 
   return (
     <PageContainer>
       <PageHeader
         title="Assignments"
         description="Create and track student assignments"
-        action={<CreateAssignmentModal onSubmit={handleCreateAssignment} />}
+        action={<CreateAssignmentModal courses={classList} onSubmit={handleCreate} />}
       />
 
-      <div className="space-y-4">
-        {assignments.map((assignment) => (
-          <Card key={assignment.id} className="hover:shadow-sm transition-shadow">
-            <CardContent className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Assignment Details */}
-                <div className="md:col-span-2">
-                  <div className="mb-3">
-                    <h3 className="font-semibold text-lg">{assignment.title}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {assignment.description}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <Badge variant="outline">{assignment.class}</Badge>
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <Calendar className="w-4 h-4" />
-                      Due: {new Date(assignment.dueDate).toLocaleDateString()}
-                    </div>
-                  </div>
-                </div>
+      {loading ? (
+        <p className="text-sm text-muted-foreground">Loading assignments...</p>
+      ) : data.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No assignments yet. Create one above.</p>
+      ) : (
+        <div className="space-y-4">
+          {data.map((a) => {
+            const submitted = a.total_submissions - a.pending_count - a.overdue_count
+            const rate = a.total_submissions > 0
+              ? Math.round((submitted / a.total_submissions) * 100)
+              : 0
 
-                {/* Submission Status */}
-                <div className="border-l border-border pl-4 md:pl-6">
-                  {getStatusIndicator(assignment)}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+            return (
+              <Link key={a.id} href={`/assignments/${a.id}`}>
+                <Card className="hover:shadow-md hover:border-primary/30 transition-all cursor-pointer">
+                  <CardContent className="p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="md:col-span-2 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-semibold text-lg">{a.title}</h3>
+                          <ChevronRight className="w-4 h-4 text-muted-foreground md:hidden" />
+                        </div>
+                        {a.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-2">{a.description}</p>
+                        )}
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <Badge variant="outline">{className(a.class_id)}</Badge>
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Upload className="w-3.5 h-3.5" />
+                            {submissionLabel(a.submission_type)}
+                          </span>
+                          <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <Calendar className="w-4 h-4" />
+                            Due: {new Date(a.due_date).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="border-l border-border pl-4 md:pl-6 space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Submission Rate</span>
+                          <span className="font-semibold">{rate}%</span>
+                        </div>
+                        <div className="flex gap-3 flex-wrap">
+                          <span className="flex items-center gap-1 text-xs text-green-600">
+                            <CheckCircle2 className="w-4 h-4" />{submitted} submitted
+                          </span>
+                          <span className="flex items-center gap-1 text-xs text-amber-600">
+                            <Clock className="w-4 h-4" />{a.pending_count} pending
+                          </span>
+                          {a.overdue_count > 0 && (
+                            <span className="flex items-center gap-1 text-xs text-red-600">
+                              <AlertCircle className="w-4 h-4" />{a.overdue_count} overdue
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-primary font-medium hidden md:block">View details →</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            )
+          })}
+        </div>
+      )}
     </PageContainer>
   )
 }

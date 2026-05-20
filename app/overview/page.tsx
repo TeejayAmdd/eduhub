@@ -10,7 +10,7 @@ import { OverviewFocusPanel } from './components/overview-focus-panel'
 export default function OverviewPage() {
   return (
     <PageContainer>
-      <div className="space-y-8">
+      <div className="space-y-4 sm:space-y-8">
         <OverviewHero />
 
         <StatsGrid />

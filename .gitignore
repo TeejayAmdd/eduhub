@@ -46,3 +46,17 @@ __v0_jsx-dev-runtime.ts
 next.user-config.*
 node_modules
 .next/
+
+# Private keys & secrets
+*.pk
+*.pem
+*.key
+
+# Uploaded user files
+uploads/
+
+# Log files
+*.log
+
+# TypeScript build cache
+tsconfig.tsbuildinfo

@@ -19,59 +19,57 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Plus } from 'lucide-react'
+import { Plus, Loader2 } from 'lucide-react'
+import { SUBMISSION_TYPES, type Class } from '@/lib/api'
 
 export interface CreateAssignmentData {
   title: string
   description: string
   dueDate: string
-  class: string
+  classId: number
+  submissionType: string
 }
 
 interface CreateAssignmentModalProps {
-  onSubmit?: (data: CreateAssignmentData) => void
+  courses: Class[]
+  onSubmit?: (data: CreateAssignmentData) => Promise<void>
 }
 
-export function CreateAssignmentModal({ onSubmit }: CreateAssignmentModalProps) {
+export function CreateAssignmentModal({ courses, onSubmit }: CreateAssignmentModalProps) {
   const [open, setOpen] = useState(false)
-  const [formData, setFormData] = useState<CreateAssignmentData>({
-    title: '',
-    description: '',
-    dueDate: '',
-    class: '',
-  })
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [dueDate, setDueDate] = useState('')
+  const [classId, setClassId] = useState<number | null>(null)
+  const [submissionType, setSubmissionType] = useState('any')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
-  const classes = [
-    'Class 10-A',
-    'Class 10-B',
-    'Class 11-A',
-    'Class 11-B',
-    'Class 12-A',
-    'Class 12-B',
-  ]
-
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+  const reset = () => {
+    setTitle(''); setDescription(''); setDueDate('')
+    setClassId(null); setSubmissionType('any'); setError('')
   }
 
-  const handleSubmit = () => {
-    if (formData.title && formData.dueDate && formData.class) {
-      onSubmit?.(formData)
-      setFormData({
-        title: '',
-        description: '',
-        dueDate: '',
-        class: '',
-      })
+  const handleSubmit = async () => {
+    if (!title.trim()) { setError('Title is required.'); return }
+    if (!classId)       { setError('Please select a course.'); return }
+    if (!dueDate)       { setError('Due date is required.'); return }
+
+    setSaving(true)
+    setError('')
+    try {
+      await onSubmit?.({ title: title.trim(), description, dueDate, classId, submissionType })
+      reset()
       setOpen(false)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to create assignment.')
+    } finally {
+      setSaving(false)
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset() }}>
       <DialogTrigger asChild>
         <Button>
           <Plus className="w-4 h-4 mr-2" />
@@ -90,10 +88,9 @@ export function CreateAssignmentModal({ onSubmit }: CreateAssignmentModalProps) 
           <div>
             <label className="text-sm font-medium">Title</label>
             <Input
-              name="title"
               placeholder="Assignment title"
-              value={formData.title}
-              onChange={handleInputChange}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
               className="mt-1"
             />
           </div>
@@ -101,28 +98,41 @@ export function CreateAssignmentModal({ onSubmit }: CreateAssignmentModalProps) 
           <div>
             <label className="text-sm font-medium">Description</label>
             <textarea
-              name="description"
               placeholder="Assignment details and instructions"
-              value={formData.description}
-              onChange={handleInputChange}
-              className="mt-1 w-full px-3 py-2 border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="mt-1 w-full px-3 py-2 border border-input rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring"
               rows={4}
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium">Class</label>
-            <Select value={formData.class} onValueChange={(value) => {
-              setFormData((prev) => ({ ...prev, class: value }))
-            }}>
+            <label className="text-sm font-medium">Course</label>
+            <Select value={classId ? String(classId) : ''} onValueChange={(v) => setClassId(Number(v))}>
               <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Select class" />
+                <SelectValue placeholder="Select course" />
               </SelectTrigger>
               <SelectContent>
-                {classes.map((cls) => (
-                  <SelectItem key={cls} value={cls}>
-                    {cls}
+                {courses.length === 0 ? (
+                  <SelectItem value="none" disabled>No courses found</SelectItem>
+                ) : courses.map((c) => (
+                  <SelectItem key={c.id} value={String(c.id)}>
+                    {c.name}
                   </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Submission Mode</label>
+            <Select value={submissionType} onValueChange={setSubmissionType}>
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Select submission mode" />
+              </SelectTrigger>
+              <SelectContent>
+                {SUBMISSION_TYPES.map((t) => (
+                  <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -132,19 +142,23 @@ export function CreateAssignmentModal({ onSubmit }: CreateAssignmentModalProps) 
             <label className="text-sm font-medium">Due Date</label>
             <Input
               type="date"
-              name="dueDate"
-              value={formData.dueDate}
-              onChange={handleInputChange}
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
               className="mt-1"
             />
           </div>
+
+          {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit}>Create</Button>
+          <Button onClick={handleSubmit} disabled={saving}>
+            {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+            Create
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

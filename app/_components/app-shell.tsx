@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { getCurrentUser } from "@/lib/api";
 import { Header } from "./header";
 import { Sidebar } from "./sidebar";
 
@@ -9,8 +11,23 @@ interface AppShellProps {
 }
 
 export function AppShell({ children }: AppShellProps) {
+  const router = useRouter();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [authorized, setAuthorized] = useState(false);
+
+  useEffect(() => {
+    const user = getCurrentUser();
+    if (!user) {
+      router.replace("/login");
+    } else if (user.role === "student") {
+      router.replace("/student/overview");
+    } else {
+      setAuthorized(true);
+    }
+  }, [router]);
+
+  if (!authorized) return null;
 
   return (
     <div className="flex h-screen bg-background">
@@ -25,7 +42,9 @@ export function AppShell({ children }: AppShellProps) {
           onToggleSidebar={() => setIsSidebarCollapsed((prev) => !prev)}
           onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
         />
-        {children}
+        <main className="flex-1 overflow-y-auto">
+          {children}
+        </main>
       </div>
     </div>
   );

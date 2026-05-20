@@ -1,14 +1,15 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { Bell, FileText, Plus, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SectionCard } from "@/app/_components/section-card";
 
 const quickActions = [
-  { label: "New Class", icon: Plus },
-  { label: "Add Student", icon: UserPlus },
-  { label: "Create Assignment", icon: FileText },
-  { label: "Send Announcement", icon: Bell },
+  { label: "New Class", icon: Plus, href: "/class-preparation" },
+  { label: "Add Student", icon: UserPlus, href: "/students" },
+  { label: "Create Assignment", icon: FileText, href: "/assignments" },
+  { label: "Send Announcement", icon: Bell, href: "/messages" },
 ];
 
 const actionStyles = [
@@ -19,6 +20,8 @@ const actionStyles = [
 ];
 
 export function OverviewQuickActions() {
+  const router = useRouter();
+
   return (
     <SectionCard
       title="Quick Actions"
@@ -28,13 +31,12 @@ export function OverviewQuickActions() {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {quickActions.map((action, index) => {
           const Icon = action.icon;
-
           return (
             <Button
               key={action.label}
               variant="outline"
               className="h-auto flex-col gap-2 rounded-2xl border-border bg-background py-5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-foreground/20"
-              onClick={() => console.log(`Navigate to ${action.label}`)}
+              onClick={() => router.push(action.href)}
             >
               <span
                 className={`flex h-11 w-11 items-center justify-center rounded-xl border ${actionStyles[index]}`}

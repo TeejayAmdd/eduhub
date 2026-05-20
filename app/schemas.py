@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 from datetime import datetime, date, time
-from app.models import RoleEnum, StatusEnum, SubmissionStatusEnum
+from app.models import RoleEnum, StatusEnum, SubmissionStatusEnum, LectureStatusEnum, TutorApplicationStatusEnum
 
 
 # ── User ────────────────────────────────────────────────
@@ -10,6 +10,10 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str
     role: RoleEnum = RoleEnum.student
+    matric_number: Optional[str] = None   # required for students
+    staff_number: Optional[str] = None    # required for lecturers
+    department: Optional[str] = None
+    level: Optional[str] = None
 
 
 class UserOut(BaseModel):
@@ -17,6 +21,10 @@ class UserOut(BaseModel):
     name: str
     email: str
     role: RoleEnum
+    matric_number: Optional[str] = None
+    staff_number: Optional[str] = None
+    department: Optional[str] = None
+    level: Optional[str] = None
     is_active: bool
     created_at: datetime
 
@@ -30,14 +38,28 @@ class Token(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    identifier: str   # matric number, staff number, or email
     password: str
+
+
+class ProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    department: Optional[str] = None
+    level: Optional[str] = None           # students only
+
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str
 
 
 # ── Class ────────────────────────────────────────────────
 class ClassCreate(BaseModel):
     name: str
     subject: str
+    course_code: Optional[str] = None
+    department: Optional[str] = None
+    level: str                           # required: "100L", "200L", etc.
     academic_year: str
 
 
@@ -45,8 +67,27 @@ class ClassOut(BaseModel):
     id: int
     name: str
     subject: str
+    course_code: Optional[str] = None
+    department: Optional[str] = None
+    level: Optional[str] = None
     academic_year: str
     lecturer_id: int
+
+    class Config:
+        from_attributes = True
+
+
+class ClassAvailableOut(BaseModel):
+    id: int
+    name: str
+    subject: str
+    course_code: Optional[str] = None
+    department: Optional[str] = None
+    level: Optional[str] = None
+    academic_year: str
+    lecturer_id: int
+    lecturer_name: str
+    is_enrolled: bool
 
     class Config:
         from_attributes = True
@@ -75,6 +116,9 @@ class StudentInClass(BaseModel):
     id: int
     name: str
     email: str
+    matric_number: Optional[str] = None
+    department: Optional[str] = None
+    level: Optional[str] = None
     roll_number: int
     grade: Optional[str]
     attendance_rate: Optional[float] = None
@@ -83,12 +127,55 @@ class StudentInClass(BaseModel):
         from_attributes = True
 
 
+class StudentCourseDetail(BaseModel):
+    class_id: int
+    class_name: str
+    course_code: Optional[str] = None
+    level: Optional[str] = None
+    academic_year: str
+    roll_number: int
+    grade: Optional[str] = None
+    enrolled_at: datetime
+    # Attendance
+    att_total: int
+    att_present: int
+    att_late: int
+    att_absent: int
+    attendance_rate: Optional[float] = None
+    # Assignments
+    assignments_total: int
+    assignments_submitted: int
+    assignments_graded: int
+    assignment_avg_score: Optional[float] = None
+    # Quizzes
+    quizzes_total: int
+    quizzes_attempted: int
+    quiz_avg_score: Optional[float] = None
+
+
+class StudentDetailOut(BaseModel):
+    id: int
+    name: str
+    email: str
+    matric_number: Optional[str] = None
+    department: Optional[str] = None
+    level: Optional[str] = None
+    is_active: bool
+    created_at: datetime
+    courses: List[StudentCourseDetail]
+
+
 # ── Assignment ───────────────────────────────────────────
 class AssignmentCreate(BaseModel):
     title: str
-    description: Optional[str]
+    description: Optional[str] = None
     class_id: int
     due_date: datetime
+    submission_type: Optional[str] = "any"
+
+
+class ExtendDeadline(BaseModel):
+    new_due_date: datetime
 
 
 class AssignmentOut(BaseModel):
@@ -96,11 +183,14 @@ class AssignmentOut(BaseModel):
     title: str
     description: Optional[str]
     class_id: int
+    class_name: Optional[str] = None
     due_date: datetime
     created_at: datetime
+    submission_type: Optional[str] = "any"
     total_submissions: Optional[int] = 0
     pending_count: Optional[int] = 0
     overdue_count: Optional[int] = 0
+    submitted: Optional[bool] = None  # None = not applicable (lecturer view)
 
     class Config:
         from_attributes = True
@@ -109,13 +199,13 @@ class AssignmentOut(BaseModel):
 # ── Submission ───────────────────────────────────────────
 class SubmissionCreate(BaseModel):
     assignment_id: int
-    file_url: Optional[str]
+    file_url: Optional[str] = None
 
 
 class SubmissionUpdate(BaseModel):
-    status: Optional[SubmissionStatusEnum]
-    score: Optional[float]
-    feedback: Optional[str]
+    status: Optional[SubmissionStatusEnum] = None
+    score: Optional[float] = None
+    feedback: Optional[str] = None
 
 
 class SubmissionOut(BaseModel):
@@ -130,6 +220,17 @@ class SubmissionOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class RosterEntry(BaseModel):
+    student_id: int
+    student_name: str
+    matric_number: Optional[str]
+    submitted: bool
+    submitted_at: Optional[datetime] = None
+    file_url: Optional[str] = None
+    score: Optional[float] = None
+    feedback: Optional[str] = None
 
 
 # ── Attendance ───────────────────────────────────────────
@@ -173,6 +274,36 @@ class ScheduleOut(BaseModel):
     start_time: time
     end_time: time
     room: Optional[str]
+    is_locked: bool = False
+
+    class Config:
+        from_attributes = True
+
+
+class ScheduleSlot(BaseModel):
+    day_of_week: str
+    start_time: time
+    end_time: time
+    room: Optional[str] = None
+
+
+class ScheduleBulkCreate(BaseModel):
+    class_id: int
+    slots: List[ScheduleSlot]
+
+
+class ScheduleWithClassOut(BaseModel):
+    id: int
+    class_id: int
+    class_name: str
+    course_code: Optional[str] = None
+    day_of_week: str
+    start_time: time
+    end_time: time
+    room: Optional[str] = None
+    lecturer_name: Optional[str] = None
+    has_conflict: bool = False
+    is_locked: bool = False
 
     class Config:
         from_attributes = True
@@ -220,7 +351,7 @@ class ExamResultOut(BaseModel):
 # ── Message ──────────────────────────────────────────────
 class MessageCreate(BaseModel):
     recipient_id: int
-    subject: Optional[str]
+    subject: Optional[str] = None
     body: str
 
 
@@ -235,6 +366,20 @@ class MessageOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class MessageThreadOut(BaseModel):
+    contact_id: int
+    contact_name: str
+    contact_email: str
+    contact_role: str
+    matric_number: Optional[str] = None
+    staff_number: Optional[str] = None
+    department: Optional[str] = None
+    last_message_body: Optional[str] = None
+    last_message_at: Optional[datetime] = None
+    last_message_sender_id: Optional[int] = None
+    unread_count: int = 0
 
 
 # ── Announcement ─────────────────────────────────────────
@@ -256,9 +401,308 @@ class AnnouncementOut(BaseModel):
         from_attributes = True
 
 
+# ── Notification ─────────────────────────────────────────
+class NotificationOut(BaseModel):
+    id: int
+    type: str
+    title: str
+    body: Optional[str] = None
+    link: Optional[str] = None
+    is_read: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 # ── Dashboard / Analytics ────────────────────────────────
 class DashboardStats(BaseModel):
     total_students: int
     classes_this_week: int
     pending_assignments: int
     attendance_rate: float
+
+
+# ── Lecture ───────────────────────────────────────────────
+class InstantLectureCreate(BaseModel):
+    class_id: int
+    title: str
+    description: str
+
+
+class LectureCreate(BaseModel):
+    class_id: int
+    title: str
+    description: Optional[str] = None
+    scheduled_at: datetime
+
+
+class LectureOut(BaseModel):
+    id: int
+    class_id: int
+    title: str
+    description: Optional[str] = None
+    scheduled_at: Optional[datetime] = None
+    started_at: Optional[datetime] = None
+    ended_at: Optional[datetime] = None
+    status: LectureStatusEnum
+    room_link: Optional[str] = None
+    jitsi_room: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ClassStatsOut(BaseModel):
+    enrolled_count: int
+    assignment_count: int
+    live_lecture: Optional[LectureOut] = None
+    next_lecture: Optional[LectureOut] = None
+
+
+# ── Live Session ──────────────────────────────────────────
+class SessionStartRequest(BaseModel):
+    class_id: int
+
+
+class SessionResponse(BaseModel):
+    id: int
+    class_id: int
+    lecturer_id: int
+    status: str
+    started_at: datetime
+    ended_at: Optional[datetime] = None
+    total_cookies_sent: int
+
+    class Config:
+        from_attributes = True
+
+
+class CookieOut(BaseModel):
+    id: int
+    session_id: int
+    sent_at: Optional[datetime] = None
+    expires_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ClickRequest(BaseModel):
+    # student_id is resolved from the JWT token; this body is intentionally empty
+    pass
+
+
+class AttendanceResult(BaseModel):
+    student_id: int
+    name: str
+    cookies_clicked: int
+    total_cookies: int
+    score: float
+    status: str
+
+
+class SessionAttendanceSummary(BaseModel):
+    class_id: int
+    total_sessions: int
+    students: List[AttendanceResult]
+
+
+# ── Lecture History ───────────────────────────────────────
+class LectureHistoryOut(BaseModel):
+    id: int
+    class_id: int
+    title: str
+    description: Optional[str] = None
+    started_at: Optional[datetime] = None
+    ended_at: Optional[datetime] = None
+    duration_str: Optional[str] = None   # e.g. "1h 15m" or "45 min"
+    attended_count: int                  # students who joined
+    total_enrolled: int                  # total enrolled in class
+    student_attended: Optional[bool] = None  # None for lecturer view
+
+
+# ── Quiz / Test ───────────────────────────────────────────
+class QuizCreate(BaseModel):
+    class_id: int
+    title: str
+    description: Optional[str] = None
+    duration_minutes: int = 30
+    available_from: Optional[datetime] = None
+    available_until: Optional[datetime] = None
+
+
+class QuizUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    duration_minutes: Optional[int] = None
+    available_from: Optional[datetime] = None
+    available_until: Optional[datetime] = None
+    is_published: Optional[bool] = None
+
+
+class QuizQuestionCreate(BaseModel):
+    text: str
+    option_a: str
+    option_b: str
+    option_c: Optional[str] = None
+    option_d: Optional[str] = None
+    correct_option: str          # "a" | "b" | "c" | "d"
+    order_index: Optional[int] = 0
+
+
+class QuizQuestionOut(BaseModel):
+    id: int
+    quiz_id: int
+    text: str
+    option_a: str
+    option_b: str
+    option_c: Optional[str] = None
+    option_d: Optional[str] = None
+    order_index: int
+    correct_option: Optional[str] = None   # only sent to lecturers
+
+    class Config:
+        from_attributes = True
+
+
+class QuizOut(BaseModel):
+    id: int
+    class_id: int
+    created_by: int
+    title: str
+    description: Optional[str] = None
+    duration_minutes: int
+    available_from: Optional[datetime] = None
+    available_until: Optional[datetime] = None
+    is_published: bool
+    created_at: datetime
+    question_count: int = 0
+    attempt_count: int = 0           # lecturer: total attempts; student: 1 if submitted, 0 if not
+    my_score: Optional[int] = None   # student: their score (None if not attempted)
+    my_total: Optional[int] = None   # student: total questions at submission
+
+    class Config:
+        from_attributes = True
+
+
+class QuizSubmit(BaseModel):
+    answers: dict   # {"<question_id>": "a"|"b"|"c"|"d", ...}
+
+
+class QuizAttemptOut(BaseModel):
+    id: int
+    quiz_id: int
+    student_id: int
+    started_at: datetime
+    submitted_at: Optional[datetime] = None
+    score: Optional[int] = None
+    total: Optional[int] = None
+    answers: Optional[str] = None   # raw JSON string
+
+    class Config:
+        from_attributes = True
+
+
+class QuizResultDetail(BaseModel):
+    student_id: int
+    student_name: str
+    matric_number: Optional[str] = None
+    score: Optional[int] = None
+    total: Optional[int] = None
+    percentage: Optional[float] = None
+    submitted_at: Optional[datetime] = None
+
+
+# ── Course Materials ──────────────────────────────────────
+class CourseMaterialOut(BaseModel):
+    id: int
+    class_id: int
+    uploaded_by: int
+    uploader_name: str
+    title: str
+    description: Optional[str] = None
+    original_filename: str
+    file_type: Optional[str] = None
+    file_size: Optional[int] = None
+    uploaded_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# ── Study Hub ─────────────────────────────────────────────
+class TutorApplyRequest(BaseModel):
+    motivation: str
+
+
+class TutorApplicationOut(BaseModel):
+    id: int
+    class_id: int
+    student_id: int
+    student_name: str
+    matric_number: Optional[str] = None
+    motivation: str
+    status: TutorApplicationStatusEnum
+    applied_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class SelectTutorsRequest(BaseModel):
+    student_ids: List[int]   # exactly 2
+
+
+class HubBroadcastCreate(BaseModel):
+    message: str
+
+
+class HubBroadcastOut(BaseModel):
+    id: int
+    class_id: int
+    tutor_id: int
+    tutor_name: str
+    message: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class HubLiveSessionCreate(BaseModel):
+    title: str
+
+
+class HubLiveSessionOut(BaseModel):
+    id: int
+    class_id: int
+    tutor_id: int
+    tutor_name: str
+    title: str
+    jitsi_room: Optional[str] = None
+    status: str
+    started_at: datetime
+    ended_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class TutorInfo(BaseModel):
+    student_id: int
+    name: str
+    matric_number: Optional[str] = None
+
+
+class HubInfoOut(BaseModel):
+    class_id: int
+    class_name: str
+    course_code: Optional[str] = None
+    member_count: int
+    tutors: List[TutorInfo]
+    my_application_status: Optional[TutorApplicationStatusEnum] = None
+    i_am_tutor: bool
+    broadcasts: List[HubBroadcastOut]
+    active_live_session: Optional[HubLiveSessionOut] = None

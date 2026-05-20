@@ -13,6 +13,8 @@ import {
   Users,
   Home,
   ClipboardList,
+  Bell,
+  PenSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -31,12 +33,14 @@ import {
 const navigationItems = [
   { name: "Overview", href: "/overview", icon: Home },
   { name: "Class Preparation", href: "/class-preparation", icon: BookOpen },
-  { name: "Attendance", href: "#", icon: Users },
-  { name: "Exams", href: "#", icon: CheckSquare },
+  { name: "Attendance", href: "/attendance", icon: Users },
+  { name: "Exams", href: "/exams", icon: CheckSquare },
+  { name: "Quizzes & Tests", href: "/quizzes", icon: PenSquare },
   { name: "Assignment Management", href: "/assignments", icon: FileText },
   { name: "Schedule", href: "/schedule", icon: Calendar },
   { name: "Students", href: "/students", icon: Users },
   { name: "Messages", href: "/messages", icon: MessageSquare },
+  { name: "Notifications", href: "/notifications", icon: Bell },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Reports", href: "/reports", icon: ClipboardList },
   { name: "Settings", href: "/settings", icon: Settings },
@@ -101,7 +105,7 @@ export function Sidebar({
             );
 
             return (
-              <li key={item.href}>
+              <li key={item.name}>
                 {isCollapsed ? (
                   <Tooltip>
                     <TooltipTrigger asChild>{linkNode}</TooltipTrigger>

@@ -22,18 +22,18 @@ export function StatCard({
 }: StatCardProps) {
   return (
     <Card className={cn('border-border/70 shadow-sm transition-shadow hover:shadow-md', className)}>
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 space-y-3">
-            <div className="flex items-center gap-3">
+      <CardContent className="p-3 sm:p-5">
+        <div className="flex items-start justify-between gap-3 sm:gap-4">
+          <div className="flex-1 space-y-2 sm:space-y-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               {icon && (
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-border bg-muted/60 text-foreground">
+                <div className="flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center rounded-xl sm:rounded-2xl border border-border bg-muted/60 text-foreground shrink-0">
                   {icon}
                 </div>
               )}
               <div>
-                <p className="text-sm font-medium text-muted-foreground">{label}</p>
-                <p className="mt-1 text-3xl font-semibold tracking-tight">{value}</p>
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">{label}</p>
+                <p className="mt-0.5 sm:mt-1 text-xl sm:text-3xl font-semibold tracking-tight">{value}</p>
               </div>
             </div>
 
