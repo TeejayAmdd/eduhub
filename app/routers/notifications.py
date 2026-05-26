@@ -9,7 +9,7 @@ import app.models as models
 router = APIRouter(prefix="/api/notifications", tags=["Notifications"])
 
 
-@router.get("/", response_model=List[NotificationOut])
+@router.get("", response_model=List[NotificationOut])
 def get_notifications(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),

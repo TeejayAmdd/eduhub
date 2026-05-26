@@ -355,6 +355,17 @@ class MessageCreate(BaseModel):
     body: str
 
 
+class MessageReactionOut(BaseModel):
+    id: int
+    message_id: int
+    user_id: int
+    emoji: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class MessageOut(BaseModel):
     id: int
     sender_id: int
@@ -363,6 +374,13 @@ class MessageOut(BaseModel):
     body: str
     sent_at: datetime
     read_at: Optional[datetime]
+    is_pinned: bool = False
+    forwarded_from_id: Optional[int] = None
+    attachment_path: Optional[str] = None
+    attachment_name: Optional[str] = None
+    attachment_type: Optional[str] = None
+    attachment_size: Optional[int] = None
+    reactions: List[MessageReactionOut] = []
 
     class Config:
         from_attributes = True

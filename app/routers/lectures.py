@@ -56,7 +56,7 @@ def _own_class(class_id: int, lecturer_id: int, db: Session) -> models.Class:
 
 
 # ── Schedule a lecture ────────────────────────────────────────────────────────
-@router.post("/", response_model=LectureOut, status_code=201)
+@router.post("", response_model=LectureOut, status_code=201)
 def schedule_lecture(
     payload: LectureCreate,
     background_tasks: BackgroundTasks,

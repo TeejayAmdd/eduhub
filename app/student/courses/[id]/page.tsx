@@ -189,7 +189,7 @@ export default function StudentCourseDashboard() {
 
             {/* Right side of hero */}
             {liveLecture ? (
-              <div className="shrink-0 flex flex-col items-end gap-3">
+              <div className="shrink-0 flex flex-col items-start md:items-end gap-3">
                 <div className="flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2 font-semibold text-white shadow-lg">
                   <span className="relative flex h-2.5 w-2.5">
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75" />
@@ -197,7 +197,7 @@ export default function StudentCourseDashboard() {
                   </span>
                   LIVE NOW
                 </div>
-                <p className="text-sm text-primary-foreground/80 max-w-[200px] truncate text-right">
+                <p className="text-sm text-primary-foreground/80 max-w-full md:max-w-[200px] truncate text-left md:text-right">
                   {liveLecture.title}
                 </p>
                 <Button
@@ -209,9 +209,9 @@ export default function StudentCourseDashboard() {
                 </Button>
               </div>
             ) : nextLecture ? (
-              <div className="shrink-0 flex flex-col items-end gap-2">
+              <div className="shrink-0 flex flex-col items-start md:items-end gap-2">
                 <p className="text-xs text-primary-foreground/70 uppercase tracking-wide">Next Lecture</p>
-                <p className="text-sm font-semibold text-right max-w-[220px]">{nextLecture.title}</p>
+                <p className="text-sm font-semibold text-left md:text-right max-w-full md:max-w-[220px]">{nextLecture.title}</p>
                 {nextLecture.scheduled_at && (
                   <>
                     <p className="text-xs text-primary-foreground/70">{formatDateTime(nextLecture.scheduled_at)}</p>
@@ -232,7 +232,7 @@ export default function StudentCourseDashboard() {
         {/* ── Live lecture banner ────────────────────────────────────────────── */}
         {liveLecture && (
           <Card className="border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-800">
-            <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-start gap-4">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-100 dark:bg-red-900/40">
                   <span className="relative flex h-3 w-3">
@@ -249,7 +249,7 @@ export default function StudentCourseDashboard() {
                 </div>
               </div>
               <Button
-                className="bg-red-600 hover:bg-red-700 text-white shrink-0"
+                className="bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto shrink-0"
                 onClick={() => router.push(`/live/${liveLecture.id}`)}
               >
                 <Radio className="w-4 h-4 mr-2" />Join Now
@@ -361,7 +361,7 @@ export default function StudentCourseDashboard() {
                   <div className="space-y-3">
                     {upcoming.map((lec) => (
                       <div key={lec.id}
-                        className="flex items-start justify-between gap-3 rounded-xl border border-border bg-muted/30 p-4">
+                        className="rounded-xl border border-border bg-muted/30 p-4">
                         <div className="space-y-1 min-w-0">
                           <p className="font-medium text-sm truncate">{lec.title}</p>
                           {lec.scheduled_at && (

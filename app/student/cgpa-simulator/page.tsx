@@ -11,12 +11,12 @@ import { cn } from '@/lib/utils'
 
 // Nigerian university grading scale (5-point system)
 const GRADES = [
-  { label: 'A', points: 5, range: '70 – 100' },
-  { label: 'B', points: 4, range: '60 – 69' },
-  { label: 'C', points: 3, range: '50 – 59' },
-  { label: 'D', points: 2, range: '45 – 49' },
-  { label: 'E', points: 1, range: '40 – 44' },
-  { label: 'F', points: 0, range: '0 – 39' },
+  { label: '5', letter: 'A', points: 5, range: '70 – 100' },
+  { label: '4', letter: 'B', points: 4, range: '60 – 69' },
+  { label: '3', letter: 'C', points: 3, range: '50 – 59' },
+  { label: '2', letter: 'D', points: 2, range: '45 – 49' },
+  { label: '1', letter: 'E', points: 1, range: '40 – 44' },
+  { label: '0', letter: 'F', points: 0, range: '0 – 39' },
 ]
 
 interface Course {

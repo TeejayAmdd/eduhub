@@ -7,7 +7,7 @@ import app.models as models
 router = APIRouter(prefix="/api/search", tags=["Search"])
 
 
-@router.get("/")
+@router.get("")
 def search(
     q: str = Query(..., min_length=1),
     db: Session = Depends(get_db),

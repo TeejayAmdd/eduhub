@@ -32,33 +32,32 @@ import app.models  # noqa: F401 — side-effect import registers LiveSession, At
 # Create all database tables on startup
 Base.metadata.create_all(bind=engine)
 
-# Column migrations — only needed for SQLite dev databases.
-# PostgreSQL gets all columns from create_all() above.
+# ADD COLUMN IF NOT EXISTS migrations for columns added after initial schema creation
 from sqlalchemy import text
-from app.config import settings
 
-if settings.DATABASE_URL.startswith("sqlite"):
-    def _add_column_if_missing(table: str, column: str, col_def: str):
-        with engine.connect() as conn:
-            existing = [row[1] for row in conn.execute(text(f"PRAGMA table_info({table})")).fetchall()]
-            if column not in existing:
-                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {col_def}"))
-                conn.commit()
+def _add_column_if_missing(table: str, column: str, col_def: str):
+    with engine.connect() as conn:
+        conn.execute(text(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {column} {col_def}"))
+        conn.commit()
 
-    _add_column_if_missing("classes", "level", "VARCHAR(20)")
-    _add_column_if_missing("assignments", "submission_type", "VARCHAR(50) DEFAULT 'any'")
-    _add_column_if_missing("lectures", "jitsi_room", "VARCHAR(200)")
-    _add_column_if_missing("attendance", "session_id", "INTEGER")
-    _add_column_if_missing("attendance", "score", "REAL")
-    _add_column_if_missing("attendance", "lecture_id", "INTEGER")
-    _add_column_if_missing("live_sessions", "lecture_id", "INTEGER")
-    _add_column_if_missing("users", "is_verified", "BOOLEAN DEFAULT 1")
-    _add_column_if_missing("quiz_attempts", "answers", "TEXT")
-    _add_column_if_missing("quiz_attempts", "score", "INTEGER")
-    _add_column_if_missing("quiz_attempts", "total", "INTEGER")
-    _add_column_if_missing("schedules", "is_locked", "BOOLEAN DEFAULT 0")
-
-    # password_reset_codes table is created by create_all above — no column patches needed
+_add_column_if_missing("classes",      "level",           "VARCHAR(20)")
+_add_column_if_missing("assignments",  "submission_type", "VARCHAR(50) DEFAULT 'any'")
+_add_column_if_missing("lectures",     "jitsi_room",      "VARCHAR(200)")
+_add_column_if_missing("attendance",   "session_id",      "INTEGER")
+_add_column_if_missing("attendance",   "score",           "REAL")
+_add_column_if_missing("attendance",   "lecture_id",      "INTEGER")
+_add_column_if_missing("live_sessions","lecture_id",      "INTEGER")
+_add_column_if_missing("users",        "is_verified",     "BOOLEAN DEFAULT TRUE")
+_add_column_if_missing("quiz_attempts","answers",         "TEXT")
+_add_column_if_missing("quiz_attempts","score",           "INTEGER")
+_add_column_if_missing("quiz_attempts","total",           "INTEGER")
+_add_column_if_missing("schedules",    "is_locked",       "BOOLEAN DEFAULT FALSE")
+_add_column_if_missing("messages",     "is_pinned",       "BOOLEAN DEFAULT FALSE")
+_add_column_if_missing("messages",     "forwarded_from_id","INTEGER")
+_add_column_if_missing("messages",     "attachment_path", "VARCHAR(500)")
+_add_column_if_missing("messages",     "attachment_name", "VARCHAR(300)")
+_add_column_if_missing("messages",     "attachment_type", "VARCHAR(100)")
+_add_column_if_missing("messages",     "attachment_size", "INTEGER")
 
 app = FastAPI(
     title="EduHub API",

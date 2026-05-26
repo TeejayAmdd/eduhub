@@ -70,7 +70,7 @@ def list_assignments(
     return [_enrich(a, db, student_id=sid) for a in query.all()]
 
 
-@router.post("/", response_model=AssignmentOut, status_code=201)
+@router.post("", response_model=AssignmentOut, status_code=201)
 def create_assignment(
     payload: AssignmentCreate,
     background_tasks: BackgroundTasks,
@@ -150,7 +150,6 @@ def extend_deadline(
     if not class_ or class_.lecturer_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied")
 
-    # SQLite stores naive datetimes; strip timezone from incoming value before comparing
     new_dt = payload.new_due_date.replace(tzinfo=None)
     if new_dt <= assignment.due_date:
         raise HTTPException(status_code=400, detail="New deadline must be after the current deadline")

@@ -1,7 +1,10 @@
 import csv
 import io
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
-from fastapi.responses import StreamingResponse
+import os
+import uuid
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, UploadFile, File, Form
+from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_, func
 from fastapi import Query as FQuery
@@ -14,13 +17,17 @@ from app.schemas import (
     AttendanceCreate, AttendanceBulkCreate, AttendanceOut,
     ScheduleCreate, ScheduleOut, ScheduleSlot, ScheduleBulkCreate, ScheduleWithClassOut,
     ExamCreate, ExamOut, ExamResultCreate, ExamResultOut,
-    MessageCreate, MessageOut, MessageThreadOut,
+    MessageCreate, MessageOut, MessageThreadOut, MessageReactionOut,
     AnnouncementCreate, AnnouncementOut,
     DashboardStats,
     ClassCreate, ClassOut, ClassAvailableOut,
     UserOut, ProfileUpdate, PasswordChange,
 )
+
+MSG_UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "uploads", "message_attachments")
+os.makedirs(MSG_UPLOAD_DIR, exist_ok=True)
 from app.auth import hash_password, verify_password
+from app.routers.websocket import push_message_ws
 from app.services.email_service import (
     send_schedule_added, send_schedule_conflict, send_weekly_timetable,
     send_account_deleted,
@@ -1256,6 +1263,7 @@ def send_message(
     )
     db.commit()
     db.refresh(msg)
+    push_message_ws(payload.recipient_id, {"type": "message", "message": jsonable_encoder(MessageOut.model_validate(msg))})
     return msg
 
 
@@ -1279,7 +1287,7 @@ def get_sent(
     ).order_by(models.Message.sent_at.desc()).all()
 
 
-@messages_router.get("/conversation/{user_id}")
+@messages_router.get("/conversation/{user_id}", response_model=List[MessageOut])
 def get_conversation(
     user_id: int,
     db: Session = Depends(get_db),
@@ -1308,7 +1316,206 @@ def mark_read(
         raise HTTPException(status_code=403, detail="Access denied")
     msg.read_at = datetime.utcnow()
     db.commit()
+    db.refresh(msg)
+    push_message_ws(msg.sender_id, {"type": "read", "message_id": msg.id, "read_at": msg.read_at.isoformat()})
     return {"message": "Marked as read"}
+
+
+@messages_router.post("/{message_id}/react", response_model=MessageOut)
+def react_to_message(
+    message_id: int,
+    emoji: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    msg = db.query(models.Message).filter(models.Message.id == message_id).first()
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found")
+    if msg.sender_id != current_user.id and msg.recipient_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    existing = db.query(models.MessageReaction).filter(
+        models.MessageReaction.message_id == message_id,
+        models.MessageReaction.user_id == current_user.id,
+    ).first()
+    if existing:
+        existing.emoji = emoji
+    else:
+        db.add(models.MessageReaction(message_id=message_id, user_id=current_user.id, emoji=emoji))
+    db.commit()
+    db.refresh(msg)
+    return msg
+
+
+@messages_router.delete("/{message_id}/react", response_model=MessageOut)
+def remove_reaction(
+    message_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    msg = db.query(models.Message).filter(models.Message.id == message_id).first()
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found")
+    db.query(models.MessageReaction).filter(
+        models.MessageReaction.message_id == message_id,
+        models.MessageReaction.user_id == current_user.id,
+    ).delete()
+    db.commit()
+    db.refresh(msg)
+    return msg
+
+
+@messages_router.patch("/{message_id}/pin", response_model=MessageOut)
+def toggle_pin(
+    message_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    msg = db.query(models.Message).filter(models.Message.id == message_id).first()
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found")
+    if msg.sender_id != current_user.id and msg.recipient_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    msg.is_pinned = not msg.is_pinned
+    db.commit()
+    db.refresh(msg)
+    return msg
+
+
+@messages_router.delete("/{message_id}", status_code=204)
+def delete_message(
+    message_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    msg = db.query(models.Message).filter(models.Message.id == message_id).first()
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found")
+    if msg.sender_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only delete your own messages")
+    recipient_id = msg.recipient_id
+    if msg.attachment_path:
+        path = os.path.join(MSG_UPLOAD_DIR, msg.attachment_path)
+        if os.path.exists(path):
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+    db.query(models.MessageReaction).filter(models.MessageReaction.message_id == message_id).delete()
+    db.delete(msg)
+    db.commit()
+    push_message_ws(recipient_id, {"type": "message_deleted", "message_id": message_id})
+
+
+@messages_router.post("/forward", response_model=MessageOut, status_code=201)
+def forward_message(
+    original_message_id: int = Form(...),
+    recipient_id: int = Form(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    original = db.query(models.Message).filter(models.Message.id == original_message_id).first()
+    if not original:
+        raise HTTPException(status_code=404, detail="Original message not found")
+    if original.sender_id != current_user.id and original.recipient_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    fwd = models.Message(
+        sender_id=current_user.id,
+        recipient_id=recipient_id,
+        body=original.body,
+        subject=original.subject,
+        forwarded_from_id=original.id,
+        attachment_path=original.attachment_path,
+        attachment_name=original.attachment_name,
+        attachment_type=original.attachment_type,
+        attachment_size=original.attachment_size,
+    )
+    db.add(fwd)
+    db.flush()
+    recipient = db.query(models.User).filter(models.User.id == recipient_id).first()
+    notif_link = (
+        f"/student/messages?open={current_user.id}"
+        if (recipient and recipient.role == models.RoleEnum.student)
+        else f"/messages?open={current_user.id}"
+    )
+    push(db, recipient_id, type="message",
+         title=f"Forwarded message from {current_user.name}",
+         body=original.body[:80] + "…" if len(original.body) > 80 else original.body,
+         link=notif_link)
+    db.commit()
+    db.refresh(fwd)
+    push_message_ws(recipient_id, {"type": "message", "message": jsonable_encoder(MessageOut.model_validate(fwd))})
+    return fwd
+
+
+@messages_router.post("/with-attachment", response_model=MessageOut, status_code=201)
+async def send_with_attachment(
+    recipient_id: int = Form(...),
+    body: str = Form(""),
+    subject: Optional[str] = Form(None),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    stored = f"{uuid.uuid4()}{ext}"
+    dest = os.path.join(MSG_UPLOAD_DIR, stored)
+    content = await file.read()
+    if len(content) > 15 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="File too large (max 15 MB)")
+    with open(dest, "wb") as f:
+        f.write(content)
+    # Fallback MIME type detection when browser omits Content-Type for the part
+    content_type = file.content_type or ""
+    if not content_type.startswith("audio/") and (file.filename or "").startswith("voice_"):
+        _ext_map = {".webm": "audio/webm", ".ogg": "audio/ogg", ".m4a": "audio/mp4", ".mp4": "audio/mp4"}
+        content_type = _ext_map.get(ext, "audio/webm")
+    msg = models.Message(
+        sender_id=current_user.id,
+        recipient_id=recipient_id,
+        body=body or (f"🎤 Voice note" if content_type.startswith("audio/") else f"📎 {file.filename}"),
+        subject=subject,
+        attachment_path=stored,
+        attachment_name=file.filename,
+        attachment_type=content_type or file.content_type or "application/octet-stream",
+        attachment_size=len(content),
+    )
+    db.add(msg)
+    db.flush()
+    recipient = db.query(models.User).filter(models.User.id == recipient_id).first()
+    notif_link = (
+        f"/student/messages?open={current_user.id}"
+        if (recipient and recipient.role == models.RoleEnum.student)
+        else f"/messages?open={current_user.id}"
+    )
+    push(db, recipient_id, type="message",
+         title=f"New message from {current_user.name}",
+         body=f"📎 {file.filename}",
+         link=notif_link)
+    db.commit()
+    db.refresh(msg)
+    push_message_ws(recipient_id, {"type": "message", "message": jsonable_encoder(MessageOut.model_validate(msg))})
+    return msg
+
+
+@messages_router.get("/attachment/{message_id}")
+def download_attachment(
+    message_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    msg = db.query(models.Message).filter(models.Message.id == message_id).first()
+    if not msg or not msg.attachment_path:
+        raise HTTPException(status_code=404, detail="Attachment not found")
+    if msg.sender_id != current_user.id and msg.recipient_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    path = os.path.join(MSG_UPLOAD_DIR, msg.attachment_path)
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="File not found on server")
+    return FileResponse(
+        path,
+        media_type=msg.attachment_type or "application/octet-stream",
+        filename=msg.attachment_name or msg.attachment_path,
+    )
 
 
 # ── Announcements ─────────────────────────────────────────────────────────────

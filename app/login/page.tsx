@@ -66,15 +66,29 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex relative">
+      {/* Mobile background image */}
+      <div className="absolute inset-0 lg:hidden overflow-hidden">
+        <Image
+          src="/login-bg.jpg"
+          alt=""
+          fill
+          sizes="(max-width: 1023px) 100vw, 0px"
+          className="object-cover blur-md scale-110"
+          priority
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/60 to-primary/40" />
+      </div>
+
       {/* Left panel — form */}
-      <div className="flex-1 flex flex-col justify-center px-6 py-12 lg:px-16">
-        <div className="w-full max-w-md mx-auto space-y-8">
+      <div className="relative z-10 flex-1 flex flex-col justify-center px-6 py-10 sm:py-12 lg:px-16 lg:bg-background">
+        <div className="w-full max-w-md mx-auto">
+          <div className="rounded-2xl bg-background/95 backdrop-blur-sm p-7 sm:p-9 space-y-7 shadow-2xl lg:rounded-none lg:bg-transparent lg:backdrop-blur-none lg:p-0 lg:shadow-none">
 
           {/* Logo */}
-          <div>
-            <h1 className="text-3xl font-bold">EduHub</h1>
-            <p className="text-muted-foreground mt-1">Lagos State University LMS</p>
+          <div className="space-y-1">
+            <h1 className="text-2xl font-bold tracking-tight">Sign in to EduHub</h1>
+            <p className="text-sm text-muted-foreground">Lagos State University Learning Portal</p>
           </div>
 
           {/* Role toggle */}
@@ -83,7 +97,7 @@ function LoginForm() {
               type="button"
               onClick={() => { setRole('student'); setIdentifier(''); setError(''); setWrongRole(null) }}
               className={cn(
-                'flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium transition-all duration-200',
+                'flex items-center justify-center gap-2 rounded-lg py-3 text-sm font-medium transition-all duration-200',
                 role === 'student'
                   ? 'bg-background text-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
@@ -96,7 +110,7 @@ function LoginForm() {
               type="button"
               onClick={() => { setRole('lecturer'); setIdentifier(''); setError(''); setWrongRole(null) }}
               className={cn(
-                'flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium transition-all duration-200',
+                'flex items-center justify-center gap-2 rounded-lg py-3 text-sm font-medium transition-all duration-200',
                 role === 'lecturer'
                   ? 'bg-background text-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
@@ -117,33 +131,18 @@ function LoginForm() {
           {/* Form */}
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-2">
-              {role === 'student' ? (
-                <>
-                  <Label htmlFor="identifier">Matric Number or Email</Label>
-                  <Input
-                    id="identifier"
-                    placeholder="e.g. LASU/19/CS/001 or your email"
-                    value={identifier}
-                    onChange={(e) => setIdentifier(e.target.value)}
-                    autoComplete="username"
-                    autoFocus
-                  />
-                  <p className="text-xs text-muted-foreground">Enter your matric number or student email</p>
-                </>
-              ) : (
-                <>
-                  <Label htmlFor="identifier">Staff Number or Email</Label>
-                  <Input
-                    id="identifier"
-                    placeholder="e.g. LASU/STAFF/042 or your email"
-                    value={identifier}
-                    onChange={(e) => setIdentifier(e.target.value)}
-                    autoComplete="username"
-                    autoFocus
-                  />
-                  <p className="text-xs text-muted-foreground">Enter your staff number or official email</p>
-                </>
-              )}
+              <Label htmlFor="identifier">
+                {role === 'student' ? 'Matric Number or Email' : 'Staff Number or Email'}
+              </Label>
+              <Input
+                id="identifier"
+                className="h-11"
+                placeholder={role === 'student' ? 'e.g. LASU/19/CS/001 or email' : 'e.g. LASU/STAFF/042 or email'}
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                autoComplete="username"
+                autoFocus
+              />
             </div>
 
             <div className="space-y-2">
@@ -160,11 +159,11 @@ function LoginForm() {
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
+                  placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
-                  className="pr-10"
+                  className="h-11 pr-10"
                 />
                 <button
                   type="button"
@@ -178,24 +177,18 @@ function LoginForm() {
             </div>
 
             {wrongRole && (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 space-y-1">
-                <p className="text-sm font-semibold text-amber-800">
-                  Wrong login tab
-                </p>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3.5 space-y-1.5">
+                <p className="text-sm font-semibold text-amber-800">Wrong login tab</p>
                 <p className="text-sm text-amber-700">
                   {wrongRole === 'lecturer'
-                    ? 'This is a Lecturer account. Please use the Lecturer tab to sign in.'
-                    : 'This is a Student account. Please use the Student tab to sign in.'
+                    ? 'This is a Lecturer account. Switch to the Lecturer tab to sign in.'
+                    : 'This is a Student account. Switch to the Student tab to sign in.'
                   }
                 </p>
                 <button
                   type="button"
                   className="text-sm font-medium text-amber-900 underline underline-offset-2 hover:opacity-80"
-                  onClick={() => {
-                    setRole(wrongRole)
-                    setWrongRole(null)
-                    setIdentifier('')
-                  }}
+                  onClick={() => { setRole(wrongRole); setWrongRole(null); setIdentifier('') }}
                 >
                   Switch to {wrongRole === 'lecturer' ? 'Lecturer' : 'Student'} tab →
                 </button>
@@ -203,12 +196,12 @@ function LoginForm() {
             )}
 
             {error && !wrongRole && (
-              <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-4 py-3">
+              <p className="text-sm text-destructive bg-destructive/10 rounded-xl px-4 py-3">
                 {error}
               </p>
             )}
 
-            <Button type="submit" className="w-full h-11" disabled={loading}>
+            <Button type="submit" className="w-full h-11 text-base font-semibold mt-1" disabled={loading}>
               {loading
                 ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Signing in…</>
                 : 'Sign In'
@@ -216,12 +209,19 @@ function LoginForm() {
             </Button>
           </form>
 
-          <p className="text-center text-sm text-muted-foreground">
-            Don&apos;t have an account?{' '}
-            <Link href="/signup" className="font-medium text-primary hover:underline underline-offset-4">
-              Create account
-            </Link>
-          </p>
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-xs text-muted-foreground">New here?</span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+
+          <Link
+            href="/signup"
+            className="flex items-center justify-center w-full h-10 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-colors"
+          >
+            Create an account
+          </Link>
+          </div>
         </div>
       </div>
 

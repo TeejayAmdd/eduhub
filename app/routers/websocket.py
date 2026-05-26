@@ -12,6 +12,7 @@ The allowed origins are enforced by the `Origin` header check below.
 """
 
 import asyncio
+import json
 from typing import Dict, List, Optional
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
@@ -30,6 +31,10 @@ registry: Dict[int, Dict[int, WebSocket]] = {}
 # ── Notification push registry ────────────────────────────────────────────────
 # user_id → open WebSocket connection for real-time notification delivery
 notification_registry: Dict[int, WebSocket] = {}
+
+# ── Messaging registry ────────────────────────────────────────────────────────
+# user_id → open WebSocket connection for real-time message delivery & typing
+message_registry: Dict[int, WebSocket] = {}
 
 # Reference to the running event loop — captured on startup so sync code
 # (e.g. push() in notifications.py) can schedule async WS sends.
@@ -54,6 +59,21 @@ def push_notification_ws(user_id: int, data: dict) -> None:
     """Sync-callable: fire-and-forget WS push to a connected user."""
     if _loop and _loop.is_running():
         asyncio.run_coroutine_threadsafe(_send_notification_ws(user_id, data), _loop)
+
+
+async def _send_message_ws(user_id: int, data: dict) -> None:
+    ws = message_registry.get(user_id)
+    if ws:
+        try:
+            await ws.send_json(data)
+        except Exception:
+            message_registry.pop(user_id, None)
+
+
+def push_message_ws(user_id: int, data: dict) -> None:
+    """Sync-callable: push a real-time message/event to a connected user."""
+    if _loop and _loop.is_running():
+        asyncio.run_coroutine_threadsafe(_send_message_ws(user_id, data), _loop)
 
 _ALLOWED_ORIGINS = {
     "http://localhost:3000",
@@ -172,3 +192,46 @@ async def websocket_notifications(
         pass
     finally:
         notification_registry.pop(user_id, None)
+
+
+@router.websocket("/ws/messages")
+async def websocket_messages(
+    websocket: WebSocket,
+    token: str = Query(...),
+):
+    origin = websocket.headers.get("origin", "")
+    if origin and origin not in _ALLOWED_ORIGINS:
+        await websocket.close(code=4003)
+        return
+
+    user_id = _decode_token(token)
+    if user_id is None:
+        await websocket.close(code=4001)
+        return
+
+    await websocket.accept()
+    message_registry[user_id] = websocket
+
+    try:
+        while True:
+            raw = await websocket.receive_text()
+            if raw == "ping":
+                await websocket.send_text("pong")
+                continue
+            try:
+                data = json.loads(raw)
+            except Exception:
+                continue
+
+            if data.get("type") == "typing":
+                to_id = data.get("to_user_id")
+                if to_id:
+                    await _send_message_ws(int(to_id), {
+                        "type": "typing",
+                        "from_user_id": user_id,
+                        "is_typing": bool(data.get("is_typing", False)),
+                    })
+    except WebSocketDisconnect:
+        pass
+    finally:
+        message_registry.pop(user_id, None)

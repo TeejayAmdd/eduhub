@@ -252,7 +252,7 @@ export default function ClassDashboardPage() {
 
   return (
     <PageContainer>
-      <div className="max-w-5xl space-y-8">
+      <div className="max-w-5xl mx-auto space-y-5 sm:space-y-8">
 
         {/* ── Back ──────────────────────────────────────────────────────────── */}
         <Button variant="ghost" size="sm" asChild className="-ml-2">
@@ -263,7 +263,7 @@ export default function ClassDashboardPage() {
         </Button>
 
         {/* ── Hero Header ───────────────────────────────────────────────────── */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-primary/70 p-8 text-primary-foreground shadow-lg">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-primary/70 p-5 sm:p-8 text-primary-foreground shadow-lg">
           <div className="absolute inset-0 opacity-10"
             style={{ backgroundImage: 'radial-gradient(circle at 70% 50%, white 0%, transparent 60%)' }} />
           <div className="relative flex flex-col md:flex-row md:items-start justify-between gap-6">
@@ -280,8 +280,8 @@ export default function ClassDashboardPage() {
                   </span>
                 )}
               </div>
-              <h1 className="text-3xl font-bold leading-tight">{cls.name}</h1>
-              <div className="flex flex-wrap items-center gap-4 text-sm text-primary-foreground/80">
+              <h1 className="text-xl sm:text-3xl font-bold leading-tight">{cls.name}</h1>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-primary-foreground/80">
                 {unitLabel && (
                   <span className="flex items-center gap-1.5">
                     <Layers className="w-4 h-4" />{unitLabel}
@@ -300,7 +300,7 @@ export default function ClassDashboardPage() {
 
             {/* Live indicator / go-live button */}
             {liveLecture ? (
-              <div className="shrink-0 flex flex-col items-end gap-3">
+              <div className="shrink-0 flex flex-col items-start md:items-end gap-3">
                 <div className="flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2 font-semibold text-white shadow-lg">
                   <span className="relative flex h-2.5 w-2.5">
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75" />
@@ -308,7 +308,7 @@ export default function ClassDashboardPage() {
                   </span>
                   LIVE NOW
                 </div>
-                <p className="text-sm text-primary-foreground/80 text-right max-w-[200px] truncate">
+                <p className="text-sm text-primary-foreground/80 text-left md:text-right max-w-full md:max-w-[200px] truncate">
                   {liveLecture.title}
                 </p>
                 <Button
@@ -327,8 +327,8 @@ export default function ClassDashboardPage() {
               </div>
             ) : (
               upcoming.length > 0 ? (
-                <div className="shrink-0 flex flex-col items-end gap-3">
-                  <div className="text-right">
+                <div className="shrink-0 flex flex-col items-start md:items-end gap-3">
+                  <div className="text-left md:text-right">
                     <p className="text-xs text-primary-foreground/70 uppercase tracking-wide">Next lecture</p>
                     <p className="text-sm font-semibold">{upcoming[0].title}</p>
                     <p className="text-xs text-primary-foreground/70">
@@ -358,8 +358,8 @@ export default function ClassDashboardPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="shrink-0 flex flex-col items-end gap-2">
-                  <p className="text-sm text-primary-foreground/60 text-right">
+                <div className="shrink-0 flex flex-col items-start md:items-end gap-2">
+                  <p className="text-sm text-primary-foreground/60 text-left md:text-right">
                     No lectures scheduled.
                   </p>
                   <Button
@@ -377,7 +377,7 @@ export default function ClassDashboardPage() {
         </div>
 
         {/* ── Stats Row ─────────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
           <StatCard icon={Users} label="Enrolled Students" value={stats?.enrolled_count ?? 0} color="blue" />
           <StatCard icon={ClipboardList} label="Assignments" value={stats?.assignment_count ?? 0} color="violet" />
           <StatCard icon={CalendarClock} label="Scheduled Lectures" value={upcoming.length} color="amber" />
@@ -464,7 +464,7 @@ export default function ClassDashboardPage() {
                   <div className="space-y-3">
                     {upcoming.map((lec) => (
                       <div key={lec.id}
-                        className="flex items-start justify-between gap-3 rounded-xl border border-border bg-muted/30 p-4">
+                        className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 rounded-xl border border-border bg-muted/30 p-4">
                         <div className="space-y-1 min-w-0">
                           <p className="font-medium text-sm truncate">{lec.title}</p>
                           {lec.scheduled_at && (
@@ -480,7 +480,7 @@ export default function ClassDashboardPage() {
                             <p className="text-xs text-muted-foreground line-clamp-2">{lec.description}</p>
                           )}
                         </div>
-                        <div className="flex flex-col gap-1.5 shrink-0">
+                        <div className="flex sm:flex-col gap-1.5 shrink-0">
                           <Button size="sm" variant="outline" className="h-8 px-3 text-xs"
                             onClick={() => handleGoLive(lec.id)}
                             disabled={!!actionLoading || !!liveLecture}>
@@ -953,13 +953,13 @@ function StatCard({ icon: Icon, label, value, color }: {
   }
   return (
     <Card>
-      <CardContent className="p-5 flex items-center gap-4">
-        <div className={cn('flex h-12 w-12 items-center justify-center rounded-xl shrink-0', colors[color])}>
-          <Icon className="w-6 h-6" />
+      <CardContent className="p-3 sm:p-5 flex items-center gap-2 sm:gap-4">
+        <div className={cn('flex h-9 w-9 sm:h-12 sm:w-12 items-center justify-center rounded-xl shrink-0', colors[color])}>
+          <Icon className="w-4 h-4 sm:w-6 sm:h-6" />
         </div>
-        <div>
-          <p className="text-2xl font-bold">{value}</p>
-          <p className="text-xs text-muted-foreground leading-tight">{label}</p>
+        <div className="min-w-0">
+          <p className="text-lg sm:text-2xl font-bold">{value}</p>
+          <p className="text-[11px] sm:text-xs text-muted-foreground leading-tight">{label}</p>
         </div>
       </CardContent>
     </Card>

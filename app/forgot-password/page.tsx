@@ -122,10 +122,24 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex relative">
+      {/* Mobile background image */}
+      <div className="absolute inset-0 lg:hidden overflow-hidden">
+        <Image
+          src="/signup-bg.jpg"
+          alt=""
+          fill
+          sizes="(max-width: 1023px) 100vw, 0px"
+          className="object-cover blur-md scale-110"
+          priority
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-900/60 to-slate-700/40" />
+      </div>
+
       {/* ── Left panel — form ─────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col justify-center px-6 py-12 lg:px-16">
-        <div className="w-full max-w-md mx-auto space-y-8">
+      <div className="relative z-10 flex-1 flex flex-col justify-center px-6 py-10 sm:py-12 lg:px-16 lg:bg-background">
+        <div className="w-full max-w-md mx-auto">
+          <div className="rounded-2xl bg-background/95 backdrop-blur-sm p-6 sm:p-8 space-y-8 shadow-xl lg:rounded-none lg:bg-transparent lg:backdrop-blur-none lg:p-0 lg:shadow-none">
 
           {/* Logo + back */}
           <div className="flex items-start justify-between">
@@ -419,6 +433,7 @@ export default function ForgotPasswordPage() {
             </div>
           )}
 
+          </div>
         </div>
       </div>
 

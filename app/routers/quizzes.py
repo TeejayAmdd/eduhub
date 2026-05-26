@@ -69,7 +69,7 @@ def _quiz_out(quiz: models.Quiz, db: Session, student_id: Optional[int] = None) 
 
 # ── List & Create ─────────────────────────────────────────────────────────────
 
-@router.get("/", response_model=List[QuizOut])
+@router.get("", response_model=List[QuizOut])
 def list_quizzes(
     class_id: Optional[int] = None,
     db: Session = Depends(get_db),
@@ -103,7 +103,7 @@ def list_quizzes(
     return [_quiz_out(q, db, sid) for q in quizzes]
 
 
-@router.post("/", response_model=QuizOut, status_code=201)
+@router.post("", response_model=QuizOut, status_code=201)
 def create_quiz(
     payload: QuizCreate,
     db: Session = Depends(get_db),

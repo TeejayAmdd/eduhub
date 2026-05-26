@@ -234,9 +234,29 @@ class Message(Base):
     body = Column(Text, nullable=False)
     sent_at = Column(DateTime(timezone=True), server_default=func.now())
     read_at = Column(DateTime(timezone=True))
+    is_pinned = Column(Boolean, default=False)
+    forwarded_from_id = Column(Integer, ForeignKey("messages.id"), nullable=True)
+    attachment_path = Column(String(500), nullable=True)
+    attachment_name = Column(String(300), nullable=True)
+    attachment_type = Column(String(100), nullable=True)
+    attachment_size = Column(Integer, nullable=True)
 
     sender = relationship("User", back_populates="sent_messages", foreign_keys=[sender_id])
     recipient = relationship("User", back_populates="received_messages", foreign_keys=[recipient_id])
+    reactions = relationship("MessageReaction", back_populates="message", cascade="all, delete-orphan")
+
+
+class MessageReaction(Base):
+    __tablename__ = "message_reactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    message_id = Column(Integer, ForeignKey("messages.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    emoji = Column(String(10), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    message = relationship("Message", back_populates="reactions")
+    user = relationship("User")
 
 
 class Notification(Base):

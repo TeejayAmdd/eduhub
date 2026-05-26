@@ -119,7 +119,7 @@ export function StudentSidebar({ isCollapsed, isMobileOpen, onMobileOpenChange }
       <aside
         className={cn(
           'hidden h-screen border-r border-border bg-sidebar text-sidebar-foreground transition-[width] duration-200 md:block',
-          isCollapsed ? 'w-20' : 'w-64'
+          isCollapsed ? 'w-20' : 'w-64',
         )}
       >
         {sidebarContent}

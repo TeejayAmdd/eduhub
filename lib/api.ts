@@ -61,7 +61,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     throw new Error(message)
   }
   if (res.status === 204) return undefined as T
-  return res.json()
+  const text = await res.text()
+  try {
+    return JSON.parse(text)
+  } catch {
+    throw new Error(`Server returned an unexpected response. Please try again.`)
+  }
 }
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
@@ -672,6 +677,14 @@ export const search = (q: string) =>
   request<SearchResults>(`/api/search?q=${encodeURIComponent(q)}`)
 
 // ── Messages ──────────────────────────────────────────────────────────────────
+export interface MessageReaction {
+  id: number
+  message_id: number
+  user_id: number
+  emoji: string
+  created_at: string
+}
+
 export interface Message {
   id: number
   sender_id: number
@@ -680,6 +693,13 @@ export interface Message {
   body: string
   sent_at: string
   read_at: string | null
+  is_pinned: boolean
+  forwarded_from_id: number | null
+  attachment_path: string | null
+  attachment_name: string | null
+  attachment_type: string | null
+  attachment_size: number | null
+  reactions: MessageReaction[]
 }
 
 export interface MessageThread {
@@ -707,6 +727,59 @@ export const messages = {
       body: JSON.stringify({ recipient_id, body, subject }),
     }),
   markRead: (id: number) => request(`/api/messages/${id}/read`, { method: 'PATCH' }),
+  react: (messageId: number, emoji: string) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+    const form = new FormData()
+    form.append('emoji', emoji)
+    return fetch(`${BASE}/api/messages/${messageId}/react`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    }).then(async (r) => {
+      if (!r.ok) throw new Error('Failed to react')
+      return r.json() as Promise<Message>
+    })
+  },
+  unreact: (messageId: number) => request<Message>(`/api/messages/${messageId}/react`, { method: 'DELETE' }),
+  pin: (messageId: number) => request<Message>(`/api/messages/${messageId}/pin`, { method: 'PATCH' }),
+  forward: (originalMessageId: number, recipientId: number) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+    const form = new FormData()
+    form.append('original_message_id', String(originalMessageId))
+    form.append('recipient_id', String(recipientId))
+    return fetch(`${BASE}/api/messages/forward`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    }).then(async (r) => {
+      if (!r.ok) throw new Error('Failed to forward')
+      return r.json() as Promise<Message>
+    })
+  },
+  sendWithAttachment: (recipientId: number, body: string, file: File, subject?: string) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+    const form = new FormData()
+    form.append('recipient_id', String(recipientId))
+    form.append('body', body)
+    if (subject) form.append('subject', subject)
+    form.append('file', file)
+    return fetch(`${BASE}/api/messages/with-attachment`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    }).then(async (r) => {
+      if (!r.ok) throw new Error('Failed to send attachment')
+      return r.json() as Promise<Message>
+    })
+  },
+  delete: (messageId: number) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+    return fetch(`${BASE}/api/messages/${messageId}`, {
+      method: 'DELETE',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    }).then((r) => { if (!r.ok) throw new Error('Failed to delete message') })
+  },
+  attachmentUrl: (messageId: number) => `${BASE}/api/messages/attachment/${messageId}`,
 }
 
 // ── Users / Contacts ──────────────────────────────────────────────────────────

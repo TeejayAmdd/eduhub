@@ -5,11 +5,10 @@ Revision ID: 001
 Revises: (initial)
 Create Date: 2026-05-11
 
-NOTE: This project currently uses SQLite + Base.metadata.create_all().
-New tables are created automatically on server start.  The two new columns
-on the existing `attendance` table are handled by _add_column_if_missing()
-in main.py.  This file is provided for future use when the project migrates
-to Alembic + PostgreSQL.
+NOTE: This project uses PostgreSQL + Base.metadata.create_all().
+New tables are created automatically on server start. New columns on existing
+tables are handled by _add_column_if_missing() in main.py using
+ALTER TABLE ... ADD COLUMN IF NOT EXISTS.
 """
 
 from alembic import op

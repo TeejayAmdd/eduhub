@@ -10,7 +10,7 @@ from app.utils.notifications import push
 router = APIRouter(prefix="/api/students", tags=["Students"])
 
 
-@router.get("/")
+@router.get("")
 def list_students(
     class_id: Optional[int] = None,
     limit: int = Query(default=20, ge=1, le=100),
