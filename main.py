@@ -57,6 +57,7 @@ def _run_db_migrations():
     _add_column_if_missing("messages",     "attachment_name", "VARCHAR(300)")
     _add_column_if_missing("messages",     "attachment_type", "VARCHAR(100)")
     _add_column_if_missing("messages",     "attachment_size", "INTEGER")
+    _add_column_if_missing("messages",     "attachment_data", "BYTEA")
 
 app = FastAPI(
     title="EduHub API",

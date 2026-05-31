@@ -1458,12 +1458,16 @@ async def send_with_attachment(
 ):
     ext = os.path.splitext(file.filename or "")[1].lower()
     stored = f"{uuid.uuid4()}{ext}"
-    dest = os.path.join(MSG_UPLOAD_DIR, stored)
     content = await file.read()
     if len(content) > 15 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="File too large (max 15 MB)")
-    with open(dest, "wb") as f:
-        f.write(content)
+    # Also write to disk as fallback (best-effort, ignored if filesystem unavailable)
+    try:
+        dest = os.path.join(MSG_UPLOAD_DIR, stored)
+        with open(dest, "wb") as f:
+            f.write(content)
+    except Exception:
+        pass
     # Fallback MIME type detection when browser omits Content-Type for the part
     content_type = file.content_type or ""
     if not content_type.startswith("audio/") and (file.filename or "").startswith("voice_"):
@@ -1478,6 +1482,7 @@ async def send_with_attachment(
         attachment_name=file.filename,
         attachment_type=content_type or file.content_type or "application/octet-stream",
         attachment_size=len(content),
+        attachment_data=content,
     )
     db.add(msg)
     db.flush()
@@ -1508,14 +1513,24 @@ def download_attachment(
         raise HTTPException(status_code=404, detail="Attachment not found")
     if msg.sender_id != current_user.id and msg.recipient_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied")
+
+    media_type = msg.attachment_type or "application/octet-stream"
+    filename = msg.attachment_name or msg.attachment_path
+
+    # Primary: serve from database (survives redeployments)
+    if msg.attachment_data:
+        from fastapi.responses import Response
+        return Response(
+            content=msg.attachment_data,
+            media_type=media_type,
+            headers={"Content-Disposition": f'inline; filename="{filename}"'},
+        )
+
+    # Fallback: serve from disk
     path = os.path.join(MSG_UPLOAD_DIR, msg.attachment_path)
     if not os.path.exists(path):
-        raise HTTPException(status_code=404, detail="File not found on server")
-    return FileResponse(
-        path,
-        media_type=msg.attachment_type or "application/octet-stream",
-        filename=msg.attachment_name or msg.attachment_path,
-    )
+        raise HTTPException(status_code=404, detail="File not found — it may have been lost in a server restart. Please resend.")
+    return FileResponse(path, media_type=media_type, filename=filename)
 
 
 # ── Announcements ─────────────────────────────────────────────────────────────

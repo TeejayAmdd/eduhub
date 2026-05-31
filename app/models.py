@@ -1,6 +1,6 @@
 from sqlalchemy import (
     Column, Integer, String, Text, Float,
-    DateTime, Date, Time, Boolean, ForeignKey, Enum, Index
+    DateTime, Date, Time, Boolean, ForeignKey, Enum, Index, LargeBinary
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -240,6 +240,7 @@ class Message(Base):
     attachment_name = Column(String(300), nullable=True)
     attachment_type = Column(String(100), nullable=True)
     attachment_size = Column(Integer, nullable=True)
+    attachment_data = Column(LargeBinary, nullable=True)
 
     sender = relationship("User", back_populates="sent_messages", foreign_keys=[sender_id])
     recipient = relationship("User", back_populates="received_messages", foreign_keys=[recipient_id])
