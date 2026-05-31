@@ -13,6 +13,46 @@ import app.models as models
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
 
 STUDENT_EMAIL_DOMAIN = "@st.lasu.edu.ng"
+
+# ── One-time seed endpoint (remove after use) ─────────────────────────────────
+
+@router.post("/seed-test-accounts")
+def seed_test_accounts(token: str, db: Session = Depends(get_db)):
+    import os
+    if token != os.environ.get("SEED_TOKEN", ""):
+        raise HTTPException(403, "Invalid token")
+
+    created = []
+
+    def make(data):
+        if db.query(models.User).filter(models.User.email == data["email"]).first():
+            return f"SKIPPED (exists): {data['email']}"
+        db.add(models.User(**data))
+        db.commit()
+        return f"CREATED: {data['email']}"
+
+    created.append(make({
+        "name": "Dr. Adewale Johnson",
+        "email": "adewale.johnson@lasu.edu.ng",
+        "password_hash": hash_password("lecturer123"),
+        "role": models.RoleEnum.lecturer,
+        "staff_number": "LASU/CS/001",
+        "department": "Computer Science",
+        "is_active": True,
+        "is_verified": True,
+    }))
+    created.append(make({
+        "name": "Fatima Bello",
+        "email": "fatima.bello@st.lasu.edu.ng",
+        "password_hash": hash_password("student123"),
+        "role": models.RoleEnum.student,
+        "matric_number": "200591001",
+        "department": "Computer Science",
+        "level": "200",
+        "is_active": True,
+        "is_verified": True,
+    }))
+    return {"results": created}
 CODE_EXPIRY_MINUTES = 15
 
 
