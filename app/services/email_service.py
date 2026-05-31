@@ -1,27 +1,48 @@
 """
-Email service — sends via Gmail SMTP.
-Falls back to console print if SMTP credentials are not configured.
+Email service — sends via Resend API (primary) or Gmail SMTP (fallback).
+Railway blocks outbound SMTP, so Resend (HTTPS-based) is the reliable path.
 """
 
-import smtplib
+import os
 import logging
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-
-from app.config import settings
 
 log = logging.getLogger(__name__)
 
 
 def _send(to: str, subject: str, html: str) -> None:
+    resend_key = os.environ.get("RESEND_API_KEY", "")
+    if resend_key:
+        _send_via_resend(to, subject, html, resend_key)
+    else:
+        _send_via_smtp(to, subject, html)
+
+
+def _send_via_resend(to: str, subject: str, html: str, api_key: str) -> None:
+    try:
+        import resend
+        resend.api_key = api_key
+        from_addr = os.environ.get("RESEND_FROM", "EduHub <onboarding@resend.dev>")
+        resend.Emails.send({
+            "from": from_addr,
+            "to": [to],
+            "subject": subject,
+            "html": html,
+        })
+        log.info("Email sent via Resend to %s", to)
+    except Exception as exc:
+        log.error("Resend failed for %s: %s", to, exc)
+
+
+def _send_via_smtp(to: str, subject: str, html: str) -> None:
+    import smtplib
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+    from app.config import settings
+
     if not settings.SMTP_HOST or not settings.SMTP_USER or not settings.SMTP_PASSWORD \
             or settings.SMTP_USER.startswith("your_"):
-        log.warning("SMTP not configured — printing email to console instead.")
-        print(f"\n{'='*60}")
-        print(f"TO: {to}")
-        print(f"SUBJECT: {subject}")
-        print(f"BODY (HTML):\n{html}")
-        print('='*60 + '\n')
+        log.warning("No email provider configured — printing to console.")
+        print(f"\n{'='*60}\nTO: {to}\nSUBJECT: {subject}\n{'='*60}\n")
         return
 
     msg = MIMEMultipart("alternative")
@@ -31,7 +52,6 @@ def _send(to: str, subject: str, html: str) -> None:
     msg.attach(MIMEText(html, "html"))
 
     try:
-        # Try port 465 (SSL) first — less blocked than 587 on most networks
         if settings.SMTP_PORT == 465:
             with smtplib.SMTP_SSL(settings.SMTP_HOST, 465, timeout=30) as server:
                 server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
@@ -42,9 +62,9 @@ def _send(to: str, subject: str, html: str) -> None:
                 server.starttls()
                 server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
                 server.sendmail(settings.SMTP_USER, to, msg.as_string())
-        log.info("Email sent to %s", to)
+        log.info("Email sent via SMTP to %s", to)
     except Exception as exc:
-        log.error("Failed to send email to %s: %s", to, exc)
+        log.error("SMTP failed for %s: %s", to, exc)
 
 
 # ── Public helpers ────────────────────────────────────────────────────────────
