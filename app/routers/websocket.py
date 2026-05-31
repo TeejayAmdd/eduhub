@@ -78,6 +78,8 @@ def push_message_ws(user_id: int, data: dict) -> None:
 _ALLOWED_ORIGINS = {
     "http://localhost:3000",
     "https://v0-learning-manage.vercel.app",
+    "https://steady-halva-7ce294.netlify.app",
+    "https://eduhub-lasu.netlify.app",
 }
 
 
