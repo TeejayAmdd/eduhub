@@ -180,7 +180,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",                        # Next.js local dev
         "https://v0-learning-manage.vercel.app",        # old Vercel frontend
-        "https://steady-halva-7ce294.netlify.app",      # Netlify frontend
+        "https://steady-halva-7ce294.netlify.app",      # Netlify (old URL)
+        "https://eduhub-lasu.netlify.app",              # Netlify frontend
     ],
     allow_credentials=True,
     allow_methods=["*"],
