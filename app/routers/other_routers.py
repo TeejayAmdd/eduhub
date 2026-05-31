@@ -1239,7 +1239,7 @@ def get_threads(
     return threads
 
 
-@messages_router.post("/", response_model=MessageOut, status_code=201)
+@messages_router.post("", response_model=MessageOut, status_code=201)
 def send_message(
     payload: MessageCreate,
     db: Session = Depends(get_db),
