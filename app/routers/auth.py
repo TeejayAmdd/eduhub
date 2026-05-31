@@ -62,17 +62,43 @@ def register(
         if not payload.staff_number:
             raise HTTPException(400, "Staff number is required for lecturers")
 
-    # Duplicate checks
-    if db.query(models.User).filter(models.User.email == payload.email).first():
-        raise HTTPException(400, "Email already registered")
-    if payload.matric_number and db.query(models.User).filter(
-        models.User.matric_number == payload.matric_number
-    ).first():
-        raise HTTPException(400, "Matric number already registered")
-    if payload.staff_number and db.query(models.User).filter(
-        models.User.staff_number == payload.staff_number
-    ).first():
-        raise HTTPException(400, "Staff number already registered")
+    # Duplicate checks — if the existing account is unverified, wipe it and let them retry
+    existing = db.query(models.User).filter(models.User.email == payload.email).first()
+    if existing:
+        if existing.is_verified:
+            raise HTTPException(400, "Email already registered")
+        # Unverified — delete the stale account so the user can re-register
+        db.query(models.EmailVerification).filter(
+            models.EmailVerification.email == payload.email
+        ).delete()
+        db.delete(existing)
+        db.flush()
+
+    if payload.matric_number:
+        dup = db.query(models.User).filter(
+            models.User.matric_number == payload.matric_number
+        ).first()
+        if dup:
+            if dup.is_verified:
+                raise HTTPException(400, "Matric number already registered")
+            db.query(models.EmailVerification).filter(
+                models.EmailVerification.email == dup.email
+            ).delete()
+            db.delete(dup)
+            db.flush()
+
+    if payload.staff_number:
+        dup = db.query(models.User).filter(
+            models.User.staff_number == payload.staff_number
+        ).first()
+        if dup:
+            if dup.is_verified:
+                raise HTTPException(400, "Staff number already registered")
+            db.query(models.EmailVerification).filter(
+                models.EmailVerification.email == dup.email
+            ).delete()
+            db.delete(dup)
+            db.flush()
 
     # Create user — inactive until email is verified
     user = models.User(
