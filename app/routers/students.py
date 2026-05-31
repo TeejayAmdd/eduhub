@@ -18,7 +18,7 @@ def list_students(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    query = db.query(models.User).filter(models.User.role == models.RoleEnum.student)
+    query = db.query(moghj,dels.User).filter(models.User.role == models.RoleEnum.student)
 
     if current_user.role == models.RoleEnum.lecturer:
         enrolled_ids = [
