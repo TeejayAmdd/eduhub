@@ -29,10 +29,6 @@ from app.routers.converter import router as converter_router
 # Ensure new models are registered with Base metadata before create_all
 import app.models  # noqa: F401 — side-effect import registers LiveSession, AttendanceCookie, CookieResponse
 
-# Create all database tables on startup
-Base.metadata.create_all(bind=engine)
-
-# ADD COLUMN IF NOT EXISTS migrations for columns added after initial schema creation
 from sqlalchemy import text
 
 def _add_column_if_missing(table: str, column: str, col_def: str):
@@ -40,24 +36,27 @@ def _add_column_if_missing(table: str, column: str, col_def: str):
         conn.execute(text(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {column} {col_def}"))
         conn.commit()
 
-_add_column_if_missing("classes",      "level",           "VARCHAR(20)")
-_add_column_if_missing("assignments",  "submission_type", "VARCHAR(50) DEFAULT 'any'")
-_add_column_if_missing("lectures",     "jitsi_room",      "VARCHAR(200)")
-_add_column_if_missing("attendance",   "session_id",      "INTEGER")
-_add_column_if_missing("attendance",   "score",           "REAL")
-_add_column_if_missing("attendance",   "lecture_id",      "INTEGER")
-_add_column_if_missing("live_sessions","lecture_id",      "INTEGER")
-_add_column_if_missing("users",        "is_verified",     "BOOLEAN DEFAULT TRUE")
-_add_column_if_missing("quiz_attempts","answers",         "TEXT")
-_add_column_if_missing("quiz_attempts","score",           "INTEGER")
-_add_column_if_missing("quiz_attempts","total",           "INTEGER")
-_add_column_if_missing("schedules",    "is_locked",       "BOOLEAN DEFAULT FALSE")
-_add_column_if_missing("messages",     "is_pinned",       "BOOLEAN DEFAULT FALSE")
-_add_column_if_missing("messages",     "forwarded_from_id","INTEGER")
-_add_column_if_missing("messages",     "attachment_path", "VARCHAR(500)")
-_add_column_if_missing("messages",     "attachment_name", "VARCHAR(300)")
-_add_column_if_missing("messages",     "attachment_type", "VARCHAR(100)")
-_add_column_if_missing("messages",     "attachment_size", "INTEGER")
+def _run_db_migrations():
+    """Create tables and apply incremental column migrations. Called inside startup_event."""
+    Base.metadata.create_all(bind=engine)
+    _add_column_if_missing("classes",      "level",           "VARCHAR(20)")
+    _add_column_if_missing("assignments",  "submission_type", "VARCHAR(50) DEFAULT 'any'")
+    _add_column_if_missing("lectures",     "jitsi_room",      "VARCHAR(200)")
+    _add_column_if_missing("attendance",   "session_id",      "INTEGER")
+    _add_column_if_missing("attendance",   "score",           "REAL")
+    _add_column_if_missing("attendance",   "lecture_id",      "INTEGER")
+    _add_column_if_missing("live_sessions","lecture_id",      "INTEGER")
+    _add_column_if_missing("users",        "is_verified",     "BOOLEAN DEFAULT TRUE")
+    _add_column_if_missing("quiz_attempts","answers",         "TEXT")
+    _add_column_if_missing("quiz_attempts","score",           "INTEGER")
+    _add_column_if_missing("quiz_attempts","total",           "INTEGER")
+    _add_column_if_missing("schedules",    "is_locked",       "BOOLEAN DEFAULT FALSE")
+    _add_column_if_missing("messages",     "is_pinned",       "BOOLEAN DEFAULT FALSE")
+    _add_column_if_missing("messages",     "forwarded_from_id","INTEGER")
+    _add_column_if_missing("messages",     "attachment_path", "VARCHAR(500)")
+    _add_column_if_missing("messages",     "attachment_name", "VARCHAR(300)")
+    _add_column_if_missing("messages",     "attachment_type", "VARCHAR(100)")
+    _add_column_if_missing("messages",     "attachment_size", "INTEGER")
 
 app = FastAPI(
     title="EduHub API",
@@ -162,12 +161,16 @@ def _run_weekly_digest_startup():
 @app.on_event("startup")
 async def startup_event():
     import asyncio
+    import threading
+
+    # Run DB migrations synchronously first (uvicorn is already listening at this point)
+    _run_db_migrations()
+
     # Capture the running event loop so sync code can schedule WS pushes
     from app.routers.websocket import set_event_loop
     set_event_loop(asyncio.get_event_loop())
 
     # Run weekly digest in background thread (non-blocking)
-    import threading
     t = threading.Thread(target=_run_weekly_digest_startup, daemon=True)
     t.start()
 
