@@ -1,17 +1,29 @@
+import os
+from urllib.parse import quote_plus
+
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from app.config import settings
 
-# Railway injects DATABASE_URL as postgres:// but SQLAlchemy 2.x requires postgresql://
-_db_url = settings.DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-# Railway Postgres requires SSL; add sslmode=require if not already present
-if "sslmode" not in _db_url:
-    _db_url += ("&" if "?" in _db_url else "?") + "sslmode=require"
+def _build_db_url() -> str:
+    # Railway's PostgreSQL plugin always injects individual PG* vars.
+    # Use them directly to avoid DATABASE_URL format/parsing surprises.
+    pghost = os.environ.get("PGHOST")
+    if pghost:
+        user = quote_plus(os.environ.get("PGUSER", "postgres"))
+        password = quote_plus(os.environ.get("PGPASSWORD", ""))
+        port = os.environ.get("PGPORT", "5432")
+        dbname = os.environ.get("PGDATABASE", "railway")
+        return f"postgresql://{user}:{password}@{pghost}:{port}/{dbname}"
+
+    # Local dev fallback: use DATABASE_URL from .env, fixing postgres:// scheme
+    return settings.DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 
 engine = create_engine(
-    _db_url,
+    _build_db_url(),
     pool_size=5,
     max_overflow=10,
     pool_timeout=30,
