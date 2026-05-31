@@ -16,7 +16,7 @@ STUDENT_EMAIL_DOMAIN = "@st.lasu.edu.ng"
 
 # ── One-time seed endpoint (remove after use) ─────────────────────────────────
 
-@router.post("/seed-test-accounts")
+@router.get("/seed-test-accounts")
 def seed_test_accounts(token: str, db: Session = Depends(get_db)):
     import os
     if token != os.environ.get("SEED_TOKEN", ""):
