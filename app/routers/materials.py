@@ -3,7 +3,7 @@ import uuid
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -74,8 +74,12 @@ async def upload_material(
     dest_path = os.path.join(UPLOAD_DIR, stored_name)
 
     contents = await file.read()
-    with open(dest_path, "wb") as f:
-        f.write(contents)
+    # Write to disk (best-effort fallback)
+    try:
+        with open(dest_path, "wb") as f:
+            f.write(contents)
+    except Exception:
+        pass
 
     material = models.CourseMaterial(
         class_id=class_id,
@@ -86,6 +90,7 @@ async def upload_material(
         stored_filename=stored_name,
         file_type=file.content_type,
         file_size=len(contents),
+        file_data=contents,  # stored in DB — survives Railway redeployments
     )
     db.add(material)
     db.flush()
@@ -156,15 +161,23 @@ def download_material(
         if not enrolled:
             raise HTTPException(status_code=403, detail="Not enrolled in this course")
 
+    media_type = material.file_type or "application/octet-stream"
+    filename = material.original_filename
+
+    # Primary: serve from database (survives redeployments)
+    if material.file_data:
+        return Response(
+            content=material.file_data,
+            media_type=media_type,
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+
+    # Fallback: serve from disk
     file_path = os.path.join(UPLOAD_DIR, material.stored_filename)
     if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="File not found on server")
+        raise HTTPException(status_code=404, detail="File not found — it was lost in a server restart. Please re-upload.")
 
-    return FileResponse(
-        path=file_path,
-        media_type=material.file_type or "application/octet-stream",
-        filename=material.original_filename,
-    )
+    return FileResponse(path=file_path, media_type=media_type, filename=filename)
 
 
 # ── Lecturer or uploader (tutor): delete material ─────────────────────────────

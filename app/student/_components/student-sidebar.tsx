@@ -18,6 +18,7 @@ import {
   Settings,
   Users,
   BookMarked,
+  Sparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -39,6 +40,7 @@ const navigationItems = [
   { name: 'Quizzes & Tests', href: '/student/quizzes', icon: PenSquare },
   { name: 'CGPA Simulator', href: '/student/cgpa-simulator', icon: Calculator },
   { name: 'Doc Converter', href: '/student/converter', icon: ArrowLeftRight },
+  { name: 'AI Study Assistant', href: '/student/ai-assistant', icon: Sparkles },
   { name: 'Study Hub', href: '/student/hub', icon: BookMarked },
   { name: 'Messages', href: '/student/messages', icon: MessageSquare },
   { name: 'Notifications', href: '/student/notifications', icon: Bell },

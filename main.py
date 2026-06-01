@@ -25,6 +25,7 @@ from app.routers.quizzes import router as quizzes_router
 from app.routers.hub import router as hub_router
 from app.routers.materials import router as materials_router
 from app.routers.converter import router as converter_router
+from app.routers.ai import router as ai_router
 
 # Ensure new models are registered with Base metadata before create_all
 import app.models  # noqa: F401 — side-effect import registers LiveSession, AttendanceCookie, CookieResponse
@@ -58,6 +59,8 @@ def _run_db_migrations():
     _add_column_if_missing("messages",     "attachment_type", "VARCHAR(100)")
     _add_column_if_missing("messages",     "attachment_size", "INTEGER")
     _add_column_if_missing("messages",     "attachment_data", "BYTEA")
+    _add_column_if_missing("course_materials", "file_data", "BYTEA")
+    # AI chat history table is created by create_all; no extra columns needed
 
 app = FastAPI(
     title="EduHub API",
@@ -213,6 +216,7 @@ app.include_router(hub_router)
 app.include_router(materials_router)
 app.include_router(reports_router)
 app.include_router(converter_router)
+app.include_router(ai_router)
 
 
 @app.get("/")

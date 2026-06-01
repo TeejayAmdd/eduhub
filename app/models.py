@@ -247,6 +247,17 @@ class Message(Base):
     reactions = relationship("MessageReaction", back_populates="message", cascade="all, delete-orphan")
 
 
+class AIChatMessage(Base):
+    __tablename__ = "ai_chat_messages"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    student_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    class_id   = Column(Integer, ForeignKey("classes.id"), nullable=False, index=True)
+    role       = Column(String(10), nullable=False)   # "user" or "assistant"
+    content    = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
 class MessageReaction(Base):
     __tablename__ = "message_reactions"
 
@@ -428,6 +439,7 @@ class CourseMaterial(Base):
     stored_filename = Column(String(300), nullable=False)   # UUID-prefixed name on disk
     file_type = Column(String(100))                         # MIME type
     file_size = Column(Integer)                             # bytes
+    file_data = Column(LargeBinary, nullable=True)          # bytes stored in DB (survives redeployments)
     uploaded_at = Column(DateTime(timezone=True), server_default=func.now())
 
     class_ = relationship("Class")
