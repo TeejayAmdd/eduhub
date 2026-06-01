@@ -340,7 +340,7 @@ export default function AIAssistantPage() {
   return (
     // ── Desktop: two-column layout ─────────────────────────────────────────
     // ── Mobile: show course list OR chat (not both)  ───────────────────────
-    <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
+    <div className="flex flex-1 min-h-0 overflow-hidden">
 
       {/* Sidebar — always visible on desktop, hidden on mobile when chat is open */}
       <div className={cn(
