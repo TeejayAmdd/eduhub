@@ -385,10 +385,10 @@ export default function ClassDashboardPage() {
         </div>
 
         {/* ── Main content: 2 columns ────────────────────────────────────────── */}
-        <div className="grid gap-6 lg:grid-cols-5">
+        <div className="grid gap-4 lg:gap-6 lg:grid-cols-5 w-full min-w-0">
 
           {/* Left: Schedule form (3/5) — shown second on mobile */}
-          <div className="lg:col-span-3 space-y-6 order-2 lg:order-1">
+          <div className="lg:col-span-3 space-y-4 lg:space-y-6 order-2 lg:order-1 w-full min-w-0">
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-semibold flex items-center gap-2">
@@ -592,7 +592,7 @@ export default function ClassDashboardPage() {
           </div>
 
           {/* Right: Quick info (2/5) — shown first on mobile */}
-          <div className="lg:col-span-2 space-y-4 order-1 lg:order-2">
+          <div className="lg:col-span-2 space-y-4 order-1 lg:order-2 w-full min-w-0">
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-semibold flex items-center gap-2">

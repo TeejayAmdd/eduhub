@@ -287,10 +287,10 @@ export default function StudentCourseDashboard() {
         </div>
 
         {/* ── Main content ──────────────────────────────────────────────────── */}
-        <div className="grid gap-4 sm:gap-6 lg:grid-cols-5">
+        <div className="grid gap-4 lg:gap-6 lg:grid-cols-5 w-full min-w-0">
 
           {/* Left: Assignments — shown second on mobile */}
-          <div className="lg:col-span-3 space-y-4 sm:space-y-6 order-2 lg:order-1">
+          <div className="lg:col-span-3 space-y-4 order-2 lg:order-1 w-full min-w-0">
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-semibold flex items-center gap-2">
@@ -453,7 +453,7 @@ export default function StudentCourseDashboard() {
           </div>
 
           {/* Right: Info + Attendance — shown first on mobile */}
-          <div className="lg:col-span-2 space-y-4 order-1 lg:order-2">
+          <div className="lg:col-span-2 space-y-4 order-1 lg:order-2 w-full min-w-0">
 
             {/* Attendance card */}
             <Card>
