@@ -152,7 +152,7 @@ export default function StudentCourseDashboard() {
         </Button>
 
         {/* ── Hero ──────────────────────────────────────────────────────────── */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-primary/70 p-5 sm:p-8 text-primary-foreground shadow-lg">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-primary/70 p-4 sm:p-8 text-primary-foreground shadow-lg">
           <div className="absolute inset-0 opacity-10"
             style={{ backgroundImage: 'radial-gradient(circle at 70% 50%, white 0%, transparent 60%)' }} />
           <div className="relative flex flex-col md:flex-row md:items-start justify-between gap-6">
@@ -169,7 +169,7 @@ export default function StudentCourseDashboard() {
                   </span>
                 )}
               </div>
-              <h1 className="text-xl sm:text-3xl font-bold leading-tight break-words">{course.name}</h1>
+              <h1 className="text-lg sm:text-3xl font-bold leading-tight break-words">{course.name}</h1>
               <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-primary-foreground/80">
                 <span className="flex items-center gap-1.5">
                   <UserCheck className="w-4 h-4" />{course.lecturer_name}
@@ -471,7 +471,7 @@ export default function StudentCourseDashboard() {
                 ) : (
                   <>
                     <div className="flex items-center justify-between">
-                      <span className="text-3xl font-bold">{attendanceRate}%</span>
+                      <span className="text-2xl sm:text-3xl font-bold">{attendanceRate}%</span>
                       <span className={cn(
                         'text-xs font-semibold rounded-full px-3 py-1',
                         attendanceRate >= 75 ? 'bg-green-100 text-green-700'
@@ -558,26 +558,31 @@ export default function StudentCourseDashboard() {
               </CardContent>
             </Card>
 
-            {/* Drop course */}
-            <Card className="border-destructive/20">
-              <CardContent className="p-4 space-y-3">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Danger Zone</p>
-                <p className="text-xs text-muted-foreground">
-                  Dropping this course removes you from all lectures and assignments.
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/5"
-                  onClick={() => { setDropMatric(''); setDropError(''); setDropOpen(true) }}
-                >
-                  <LogOut className="w-3.5 h-3.5 mr-1.5" />Drop Course
-                </Button>
-              </CardContent>
-            </Card>
-
           </div>
         </div>
+
+        {/* ── Danger Zone — always at the very bottom ───────────────────────── */}
+        <Card className="border-destructive/20">
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Danger Zone</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Dropping this course removes you from all lectures and assignments.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0 text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/5"
+                onClick={() => { setDropMatric(''); setDropError(''); setDropOpen(true) }}
+              >
+                <LogOut className="w-3.5 h-3.5 mr-1.5" />Drop Course
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
       </div>
 
       {/* Drop course dialog */}
@@ -653,8 +658,8 @@ function MiniStat({ icon: Icon, label, value, color }: {
           <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
         </div>
         <div>
-          <p className="text-lg sm:text-xl font-bold">{value}</p>
-          <p className="text-[11px] sm:text-xs text-muted-foreground leading-tight">{label}</p>
+          <p className="text-base sm:text-xl font-bold">{value}</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground leading-tight">{label}</p>
         </div>
       </CardContent>
     </Card>
