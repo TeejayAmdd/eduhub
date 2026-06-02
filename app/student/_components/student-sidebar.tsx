@@ -59,10 +59,9 @@ export function StudentSidebar({ isCollapsed, isMobileOpen, onMobileOpenChange }
 
   const sidebarContent = (
     <div className="flex h-full flex-col">
-      <div
-        className={cn('border-b border-sidebar-border py-6', isCollapsed ? 'px-3' : 'px-6')}
-        style={{ paddingTop: 'max(1.5rem, env(safe-area-inset-top))' }}
-      >
+      {/* Fills the Dynamic Island / notch area with sidebar colour */}
+      <div className="shrink-0 bg-sidebar" style={{ height: 'env(safe-area-inset-top, 0px)' }} />
+      <div className={cn('border-b border-sidebar-border py-6', isCollapsed ? 'px-3' : 'px-6')}>
         <div className={cn('flex items-center gap-2', isCollapsed && 'justify-center')}>
           <GraduationCap className="h-5 w-5 shrink-0" />
           <h1 className={cn('text-xl font-semibold transition-all', isCollapsed && 'sr-only')}>
