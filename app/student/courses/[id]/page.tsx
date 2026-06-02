@@ -141,7 +141,7 @@ export default function StudentCourseDashboard() {
 
   return (
     <PageContainer>
-      <div className="max-w-5xl mx-auto space-y-5 sm:space-y-8">
+      <div className="w-full max-w-5xl mx-auto space-y-5 sm:space-y-8 min-w-0">
 
         {/* ── Back ──────────────────────────────────────────────────────────── */}
         <Button variant="ghost" size="sm" asChild className="-ml-2">
@@ -169,7 +169,7 @@ export default function StudentCourseDashboard() {
                   </span>
                 )}
               </div>
-              <h1 className="text-xl sm:text-3xl font-bold leading-tight">{course.name}</h1>
+              <h1 className="text-xl sm:text-3xl font-bold leading-tight break-words">{course.name}</h1>
               <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-primary-foreground/80">
                 <span className="flex items-center gap-1.5">
                   <UserCheck className="w-4 h-4" />{course.lecturer_name}
@@ -365,10 +365,10 @@ export default function StudentCourseDashboard() {
                         <div className="space-y-1 min-w-0">
                           <p className="font-medium text-sm truncate">{lec.title}</p>
                           {lec.scheduled_at && (
-                            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                              <CalendarClock className="w-3.5 h-3.5" />
-                              {formatDateTime(lec.scheduled_at)}
-                              <span className="text-primary font-medium">· {timeUntil(lec.scheduled_at, now)}</span>
+                            <p className="text-xs text-muted-foreground flex flex-wrap items-center gap-1.5">
+                              <CalendarClock className="w-3.5 h-3.5 shrink-0" />
+                              <span className="break-all">{formatDateTime(lec.scheduled_at)}</span>
+                              <span className="text-primary font-medium shrink-0">· {timeUntil(lec.scheduled_at, now)}</span>
                             </p>
                           )}
                           {lec.description && (

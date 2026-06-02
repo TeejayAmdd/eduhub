@@ -30,7 +30,7 @@ export function StudentAppShell({ children }: StudentAppShellProps) {
   if (!authorized) return null
 
   return (
-    <div className="flex h-[100dvh] bg-background">
+    <div className="flex h-[100dvh] bg-background overflow-x-hidden w-full">
       <StudentSidebar
         isCollapsed={isCollapsed}
         isMobileOpen={isMobileOpen}

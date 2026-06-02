@@ -252,7 +252,7 @@ export default function ClassDashboardPage() {
 
   return (
     <PageContainer>
-      <div className="max-w-6xl mx-auto space-y-5 sm:space-y-8">
+      <div className="w-full max-w-6xl mx-auto space-y-5 sm:space-y-8 min-w-0">
 
         {/* ── Back ──────────────────────────────────────────────────────────── */}
         <Button variant="ghost" size="sm" asChild className="-ml-2">
@@ -280,7 +280,7 @@ export default function ClassDashboardPage() {
                   </span>
                 )}
               </div>
-              <h1 className="text-xl sm:text-3xl font-bold leading-tight">{cls.name}</h1>
+              <h1 className="text-xl sm:text-3xl font-bold leading-tight break-words">{cls.name}</h1>
               <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-primary-foreground/80">
                 {unitLabel && (
                   <span className="flex items-center gap-1.5">

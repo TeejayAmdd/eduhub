@@ -30,7 +30,7 @@ export function AppShell({ children }: AppShellProps) {
   if (!authorized) return null;
 
   return (
-    <div className="flex h-[100dvh] bg-background">
+    <div className="flex h-[100dvh] bg-background overflow-x-hidden w-full">
       <Sidebar
         isCollapsed={isSidebarCollapsed}
         isMobileOpen={isMobileSidebarOpen}

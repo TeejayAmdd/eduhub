@@ -12,7 +12,7 @@ export function PageContainer({
   description,
 }: PageContainerProps) {
   return (
-    <div className="flex-1 overflow-auto">
+    <div className="flex-1 overflow-x-hidden overflow-y-auto w-full min-w-0">
       {(title || description) && (
         <div className="border-b border-border px-4 py-4 sm:px-6 sm:py-6">
           {title && <h1 className="text-xl sm:text-3xl font-bold">{title}</h1>}
