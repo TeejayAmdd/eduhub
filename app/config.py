@@ -10,7 +10,8 @@ class Settings(BaseSettings):
 
     JAAS_APP_ID: Optional[str] = None
     JAAS_API_KEY_ID: Optional[str] = None
-    JAAS_PRIVATE_KEY_FILE: Optional[str] = None
+    JAAS_PRIVATE_KEY_FILE: Optional[str] = None   # legacy: path to PEM file
+    JAAS_PRIVATE_KEY: Optional[str] = None         # preferred: PEM content as env var
 
     # ── Email (Gmail SMTP) ───────────────────────────────────────────────────
     SMTP_HOST: Optional[str] = None

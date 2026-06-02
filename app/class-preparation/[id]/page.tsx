@@ -252,7 +252,7 @@ export default function ClassDashboardPage() {
 
   return (
     <PageContainer>
-      <div className="max-w-5xl mx-auto space-y-5 sm:space-y-8">
+      <div className="max-w-6xl mx-auto space-y-5 sm:space-y-8">
 
         {/* ── Back ──────────────────────────────────────────────────────────── */}
         <Button variant="ghost" size="sm" asChild className="-ml-2">
@@ -387,8 +387,8 @@ export default function ClassDashboardPage() {
         {/* ── Main content: 2 columns ────────────────────────────────────────── */}
         <div className="grid gap-6 lg:grid-cols-5">
 
-          {/* Left: Schedule form (3/5) */}
-          <div className="lg:col-span-3 space-y-6">
+          {/* Left: Schedule form (3/5) — shown second on mobile */}
+          <div className="lg:col-span-3 space-y-6 order-2 lg:order-1">
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-semibold flex items-center gap-2">
@@ -403,7 +403,7 @@ export default function ClassDashboardPage() {
                     placeholder="e.g. Introduction to Algorithms" />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label>Date</Label>
                     <Input type="date" value={schedDate} onChange={(e) => setSchedDate(e.target.value)} />
@@ -591,8 +591,8 @@ export default function ClassDashboardPage() {
             </Card>
           </div>
 
-          {/* Right: Quick info (2/5) */}
-          <div className="lg:col-span-2 space-y-4">
+          {/* Right: Quick info (2/5) — shown first on mobile */}
+          <div className="lg:col-span-2 space-y-4 order-1 lg:order-2">
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-semibold flex items-center gap-2">

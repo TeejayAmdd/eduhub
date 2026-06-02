@@ -348,18 +348,24 @@ def get_jitsi_token(
     if not lecture:
         raise HTTPException(status_code=404, detail="Lecture not found")
 
-    app_id   = (settings.JAAS_APP_ID or "").strip()
-    key_id   = (settings.JAAS_API_KEY_ID or "").strip()
-    key_file = (settings.JAAS_PRIVATE_KEY_FILE or "").strip()
+    app_id = (settings.JAAS_APP_ID or "").strip()
+    key_id = (settings.JAAS_API_KEY_ID or "").strip()
 
-    if not app_id or not key_id or not key_file:
+    if not app_id or not key_id:
         raise HTTPException(status_code=501, detail="JaaS not configured")
 
-    if not os.path.exists(key_file):
-        raise HTTPException(status_code=501, detail=f"Private key file not found: {key_file}")
+    # Prefer JAAS_PRIVATE_KEY env var (PEM string) — works on Railway
+    # Fall back to JAAS_PRIVATE_KEY_FILE (legacy file path)
+    private_key = (settings.JAAS_PRIVATE_KEY or "").strip()
+    if not private_key:
+        key_file = (settings.JAAS_PRIVATE_KEY_FILE or "").strip()
+        if not key_file or not os.path.exists(key_file):
+            raise HTTPException(status_code=501, detail="JaaS private key not configured")
+        with open(key_file) as f:
+            private_key = f.read()
 
-    with open(key_file) as f:
-        private_key = f.read()
+    if not private_key:
+        raise HTTPException(status_code=501, detail="JaaS private key is empty")
 
     from jose import jwt as jose_jwt
 
