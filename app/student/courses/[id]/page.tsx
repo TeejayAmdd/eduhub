@@ -287,10 +287,10 @@ export default function StudentCourseDashboard() {
         </div>
 
         {/* ── Main content ──────────────────────────────────────────────────── */}
-        <div className="grid gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-5">
+        <div className="grid gap-4 sm:gap-6 lg:grid-cols-5">
 
-          {/* Left: Assignments */}
-          <div className="md:col-span-2 lg:col-span-3 space-y-4 sm:space-y-6">
+          {/* Left: Assignments — shown second on mobile */}
+          <div className="lg:col-span-3 space-y-4 sm:space-y-6 order-2 lg:order-1">
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-semibold flex items-center gap-2">
@@ -316,22 +316,22 @@ export default function StudentCourseDashboard() {
 
                       return (
                         <Link key={a.id} href={`/student/assignments/${a.id}`}>
-                          <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-muted/30 px-4 py-3 hover:border-primary/30 hover:bg-muted/60 transition-all cursor-pointer">
-                            <div className="min-w-0 space-y-0.5">
-                              <p className="text-sm font-medium truncate">{a.title}</p>
-                              <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                                <Calendar className="w-3 h-3" />
-                                Due {new Date(a.due_date).toLocaleDateString('en-GB', {
-                                  day: '2-digit', month: 'short', year: 'numeric',
-                                })}
-                              </p>
+                          <div className="rounded-xl border border-border bg-muted/30 px-4 py-3 hover:border-primary/30 hover:bg-muted/60 transition-all cursor-pointer">
+                            <div className="flex items-start justify-between gap-3">
+                              <p className="text-sm font-medium truncate min-w-0">{a.title}</p>
+                              <div className="flex items-center gap-2 shrink-0">
+                                {statusBadge}
+                                {!a.submitted && !isOverdue && (
+                                  <Upload className="w-3.5 h-3.5 text-muted-foreground" />
+                                )}
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                              {statusBadge}
-                              {!a.submitted && !isOverdue && (
-                                <Upload className="w-3.5 h-3.5 text-muted-foreground" />
-                              )}
-                            </div>
+                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                              <Calendar className="w-3 h-3 shrink-0" />
+                              Due {new Date(a.due_date).toLocaleDateString('en-GB', {
+                                day: '2-digit', month: 'short', year: 'numeric',
+                              })}
+                            </p>
                           </div>
                         </Link>
                       )
@@ -452,8 +452,8 @@ export default function StudentCourseDashboard() {
             </Card>
           </div>
 
-          {/* Right: Info + Attendance */}
-          <div className="md:col-span-1 lg:col-span-2 space-y-4">
+          {/* Right: Info + Attendance — shown first on mobile */}
+          <div className="lg:col-span-2 space-y-4 order-1 lg:order-2">
 
             {/* Attendance card */}
             <Card>
