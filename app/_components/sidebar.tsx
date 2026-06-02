@@ -15,6 +15,7 @@ import {
   ClipboardList,
   Bell,
   PenSquare,
+  GraduationCap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -61,20 +62,16 @@ export function Sidebar({
 
   const sidebarContent = (
     <div className="flex h-full flex-col">
-      <div
-        className={cn(
-          "border-b border-sidebar-border py-6",
-          isCollapsed ? "px-3" : "px-6",
+      <div className={cn("border-b border-sidebar-border py-6", isCollapsed ? "px-3" : "px-6")}>
+        <div className={cn("flex items-center gap-2", isCollapsed && "justify-center")}>
+          <GraduationCap className="h-5 w-5 shrink-0" />
+          <h1 className={cn("text-xl font-semibold transition-all", isCollapsed && "sr-only")}>
+            EduHub
+          </h1>
+        </div>
+        {!isCollapsed && (
+          <p className="mt-1 text-xs text-sidebar-foreground/60">Lecturer Portal</p>
         )}
-      >
-        <h1
-          className={cn(
-            "text-xl font-semibold transition-all",
-            isCollapsed && "text-center text-sm",
-          )}
-        >
-          {isCollapsed ? "EH" : "EduHub"}
-        </h1>
       </div>
 
       <nav className="flex-1 overflow-y-auto px-4 py-4">
