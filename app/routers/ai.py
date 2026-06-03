@@ -32,7 +32,8 @@ _STUDY_TOOL = {
                 "type": "string",
                 "description": (
                     "The answer in plain text. "
-                    "No markdown: no *, **, #, _, ~~, or backticks. "
+                    "No markdown except fenced code blocks (```language ... ```). "
+                    "No *, **, #, _, or ~~ outside of code fences. "
                     "Use numbered lists (1. 2. 3.) for lists. "
                     "Separate paragraphs with blank lines."
                 ),
@@ -187,9 +188,14 @@ RULES:
 - Do not make up information that is not in the materials.
 
 FORMATTING:
-- Write in plain, clean text. No markdown symbols (*, **, #, _, ~~, backticks).
+- Write in plain, clean text. No markdown symbols (*, **, #, _, ~~).
 - Use numbered lists (1. 2. 3.) when listing items.
 - Separate ideas with paragraph breaks.
+- For any code (Python, SQL, JavaScript, etc.), always wrap it in a fenced code block with the language name, like:
+  ```python
+  # your code here
+  ```
+  Never write code inline without a code fence.
 
 For the suggestions field, provide 2 or 3 natural follow-up questions a student would logically ask next given what was just discussed.
 

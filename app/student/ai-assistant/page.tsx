@@ -4,8 +4,12 @@ import { useState, useEffect, useRef } from 'react'
 import {
   Send, BookOpen, Loader2, Bot, User,
   ArrowLeft, Sparkles, ChevronRight, MessageCircle,
+  Copy, Check, Download,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import ReactMarkdown from 'react-markdown'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/cjs/styles/prism'
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -54,7 +58,89 @@ const QUICK_PROMPTS = [
   'List definitions I should know',
 ]
 
-/* Defined outside the page component so React never recreates it */
+/* ── Code block with language label + copy button ────────────────────── */
+function CodeBlock({ language, code }: { language: string; code: string }) {
+  const [copied, setCopied] = useState(false)
+
+  const copy = () => {
+    navigator.clipboard.writeText(code).catch(() => {})
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="rounded-xl overflow-hidden my-3 border border-zinc-700 text-sm">
+      {/* Bar */}
+      <div className="flex items-center justify-between px-4 py-2 bg-zinc-800 border-b border-zinc-700">
+        <span className="text-xs font-mono text-zinc-400">{language || 'code'}</span>
+        <button
+          onClick={copy}
+          className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white transition-colors"
+        >
+          {copied
+            ? <><Check className="h-3.5 w-3.5 text-green-400" /><span className="text-green-400">Copied!</span></>
+            : <><Copy className="h-3.5 w-3.5" />Copy code</>
+          }
+        </button>
+      </div>
+      {/* Highlighted code */}
+      <SyntaxHighlighter
+        language={language || 'text'}
+        style={vscDarkPlus}
+        customStyle={{ margin: 0, borderRadius: 0, fontSize: '0.8rem', padding: '1rem' }}
+        showLineNumbers
+        wrapLongLines
+      >
+        {code}
+      </SyntaxHighlighter>
+    </div>
+  )
+}
+
+/* ── Renders AI message content: plain text + code blocks ─────────────── */
+function MessageContent({ content }: { content: string }) {
+  return (
+    <ReactMarkdown
+      components={{
+        // Strip the <pre> wrapper — we handle it inside <code>
+        pre({ children }) {
+          return <>{children}</>
+        },
+        code({ className, children }) {
+          const match = /language-(\w+)/.exec(className || '')
+          const code = String(children).replace(/\n$/, '')
+          if (match) {
+            return <CodeBlock language={match[1]} code={code} />
+          }
+          return (
+            <code className="bg-zinc-800 text-pink-300 px-1.5 py-0.5 rounded text-[0.82em] font-mono">
+              {children}
+            </code>
+          )
+        },
+        p({ children }) {
+          return <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>
+        },
+        ol({ children }) {
+          return <ol className="list-decimal list-inside space-y-1 my-2 pl-1">{children}</ol>
+        },
+        ul({ children }) {
+          return <ul className="list-disc list-inside space-y-1 my-2 pl-1">{children}</ul>
+        },
+        li({ children }) {
+          return <li className="leading-relaxed">{children}</li>
+        },
+        strong({ children }) {
+          return <strong className="font-semibold">{children}</strong>
+        },
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  )
+}
+
+/* ── Initials avatar ──────────────────────────────────────────────────── */
 function CourseAvatar({ name }: { name: string }) {
   const initials = name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
   return (
@@ -64,6 +150,7 @@ function CourseAvatar({ name }: { name: string }) {
   )
 }
 
+/* ── Main page ────────────────────────────────────────────────────────── */
 export default function AIAssistantPage() {
   const [classes, setClasses]               = useState<AIClass[]>([])
   const [loadingClasses, setLoadingClasses] = useState(true)
@@ -74,6 +161,7 @@ export default function AIAssistantPage() {
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [error, setError]                   = useState('')
   const [suggestions, setSuggestions]       = useState<string[]>([])
+  const [copiedIdx, setCopiedIdx]           = useState<number | null>(null)
   const bottomRef   = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -125,6 +213,28 @@ export default function AIAssistantPage() {
     }
   }
 
+  const copyMessage = (content: string, idx: number) => {
+    navigator.clipboard.writeText(content).catch(() => {})
+    setCopiedIdx(idx)
+    setTimeout(() => setCopiedIdx(null), 2000)
+  }
+
+  const downloadConversation = () => {
+    if (!history.length || !selected) return
+    const header = `AI Study Assistant — ${selected.course_code ?? ''} ${selected.name}\n${'─'.repeat(60)}\n\n`
+    const body = history.map(msg => {
+      const label = msg.role === 'user' ? 'You' : 'AI Assistant'
+      return `${label}:\n${msg.content}`
+    }).join('\n\n─────────────────────────────\n\n')
+    const blob = new Blob([header + body], { type: 'text/plain;charset=utf-8' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href     = url
+    a.download = `${(selected.course_code ?? selected.name).replace(/\s+/g, '-')}-chat.txt`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   const withMaterials    = classes.filter(c => c.has_materials)
   const withoutMaterials = classes.filter(c => !c.has_materials)
 
@@ -136,7 +246,6 @@ export default function AIAssistantPage() {
         'flex-col border-r w-full md:w-72 lg:w-80 shrink-0 bg-background',
         selected ? 'hidden md:flex' : 'flex',
       )}>
-        {/* Header */}
         <div className="bg-primary text-primary-foreground px-4 pt-5 pb-4 shrink-0">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-primary-foreground/20 flex items-center justify-center">
@@ -168,7 +277,7 @@ export default function AIAssistantPage() {
               <div>
                 <p className="font-semibold text-sm">No courses yet</p>
                 <p className="text-xs mt-1 leading-relaxed">
-                  Enrol in a course first. Your lecturer then needs to upload PDF materials before the AI can help.
+                  Enrol in a course first. Your lecturer needs to upload PDF materials before the AI can help.
                 </p>
               </div>
             </div>
@@ -185,9 +294,7 @@ export default function AIAssistantPage() {
                 >
                   <CourseAvatar name={cls.name} />
                   <div className="flex-1 min-w-0 text-left">
-                    <p className="font-semibold text-sm truncate">
-                      {cls.course_code ?? cls.name}
-                    </p>
+                    <p className="font-semibold text-sm truncate">{cls.course_code ?? cls.name}</p>
                     {cls.course_code && (
                       <p className="text-xs text-muted-foreground truncate mt-0.5">{cls.name}</p>
                     )}
@@ -207,10 +314,7 @@ export default function AIAssistantPage() {
                     </p>
                   </div>
                   {withoutMaterials.map(cls => (
-                    <div
-                      key={cls.id}
-                      className="w-full flex items-center gap-3 px-4 py-3.5 border-b border-border/60 opacity-50"
-                    >
+                    <div key={cls.id} className="w-full flex items-center gap-3 px-4 py-3.5 border-b border-border/60 opacity-50">
                       <div className="h-11 w-11 rounded-full bg-muted flex items-center justify-center shrink-0">
                         <BookOpen className="h-5 w-5 text-muted-foreground" />
                       </div>
@@ -261,10 +365,22 @@ export default function AIAssistantPage() {
                   <p className="text-xs text-primary-foreground/75">AI · online</p>
                 </div>
               </div>
+
+              {/* Download conversation */}
+              {history.length > 0 && (
+                <button
+                  onClick={downloadConversation}
+                  className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-primary-foreground/10 transition-colors"
+                  aria-label="Download conversation"
+                  title="Download conversation"
+                >
+                  <Download className="h-4 w-4" />
+                </button>
+              )}
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3 bg-muted/20">
+            <div className="flex-1 overflow-y-auto px-3 py-4 space-y-4 bg-muted/20">
               {loadingHistory ? (
                 <div className="flex justify-center pt-12">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -295,23 +411,44 @@ export default function AIAssistantPage() {
                 </div>
               ) : (
                 history.map((msg, i) => (
-                  <div
-                    key={i}
-                    className={cn('flex items-end gap-2', msg.role === 'user' ? 'justify-end' : 'justify-start')}
-                  >
+                  <div key={i} className={cn('flex items-end gap-2', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
                     {msg.role === 'assistant' && (
-                      <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mb-0.5">
+                      <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mb-0.5 self-start mt-1">
                         <Bot className="h-3.5 w-3.5 text-primary" />
                       </div>
                     )}
-                    <div className={cn(
-                      'max-w-[82%] rounded-2xl px-3.5 py-2.5 text-sm whitespace-pre-wrap leading-relaxed shadow-sm',
-                      msg.role === 'user'
-                        ? 'bg-primary text-primary-foreground rounded-br-sm'
-                        : 'bg-background text-foreground rounded-bl-sm border border-border/60',
-                    )}>
-                      {msg.content}
+
+                    <div className={cn('flex flex-col gap-1', msg.role === 'user' ? 'items-end max-w-[82%]' : 'items-start max-w-[88%]')}>
+                      {/* Bubble */}
+                      <div className={cn(
+                        'rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed shadow-sm',
+                        msg.role === 'user'
+                          ? 'bg-primary text-primary-foreground rounded-br-sm'
+                          : 'bg-background text-foreground rounded-bl-sm border border-border/60',
+                      )}>
+                        {msg.role === 'assistant'
+                          ? <MessageContent content={msg.content} />
+                          : <span className="whitespace-pre-wrap">{msg.content}</span>
+                        }
+                      </div>
+
+                      {/* Action row — copy for AI messages */}
+                      {msg.role === 'assistant' && (
+                        <div className="flex items-center gap-1 px-1">
+                          <button
+                            onClick={() => copyMessage(msg.content, i)}
+                            className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors py-0.5 px-1.5 rounded-md hover:bg-muted"
+                            title="Copy response"
+                          >
+                            {copiedIdx === i
+                              ? <><Check className="h-3 w-3 text-green-500" /><span className="text-green-500">Copied</span></>
+                              : <><Copy className="h-3 w-3" />Copy</>
+                            }
+                          </button>
+                        </div>
+                      )}
                     </div>
+
                     {msg.role === 'user' && (
                       <div className="h-7 w-7 rounded-full bg-primary flex items-center justify-center shrink-0 mb-0.5">
                         <User className="h-3.5 w-3.5 text-primary-foreground" />
