@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import {
-  Send, Trash2, BookOpen, Loader2, Bot, User,
+  Send, BookOpen, Loader2, Bot, User,
   ArrowLeft, Sparkles, ChevronRight, MessageCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -269,16 +269,6 @@ export default function AIAssistantPage() {
             <p className="text-xs text-primary-foreground/75">AI · online</p>
           </div>
         </div>
-
-        {history.length > 0 && (
-          <button
-            onClick={clearHistory}
-            className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-primary-foreground/10 transition-colors"
-            aria-label="Clear chat"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        )}
       </div>
 
       {/* Messages area */}

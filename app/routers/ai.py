@@ -20,22 +20,32 @@ router = APIRouter(prefix="/api/ai", tags=["AI Study Assistant"])
 MAX_HISTORY    = 20
 MAX_TEXT_CHARS = 80_000
 UPLOAD_DIR     = os.path.join(os.path.dirname(__file__), "..", "..", "uploads", "materials")
-SUGGESTIONS_MARKER = "FOLLOW-UP:"
 
-
-def _parse_reply(raw: str) -> tuple[str, list[str]]:
-    """Split Claude output into (clean_reply, suggestions_list)."""
-    idx = raw.find(SUGGESTIONS_MARKER)
-    if idx == -1:
-        return raw.strip(), []
-    reply = raw[:idx].strip()
-    after = raw[idx + len(SUGGESTIONS_MARKER):].strip()
-    suggestions = [
-        line.lstrip("-•* 0123456789.)").strip()
-        for line in after.splitlines()
-        if line.strip() and line.strip() not in ("-", "•", "*")
-    ][:3]
-    return reply, [s for s in suggestions if s]
+# Tool schema — forces Claude to always return structured answer + suggestions
+_STUDY_TOOL = {
+    "name": "study_response",
+    "description": "Return a plain-text answer and 2-3 follow-up question suggestions.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "answer": {
+                "type": "string",
+                "description": (
+                    "The answer in plain text. "
+                    "No markdown: no *, **, #, _, ~~, or backticks. "
+                    "Use numbered lists (1. 2. 3.) for lists. "
+                    "Separate paragraphs with blank lines."
+                ),
+            },
+            "suggestions": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "2 or 3 short follow-up questions the student might want to ask next.",
+            },
+        },
+        "required": ["answer", "suggestions"],
+    },
+}
 
 
 def _extract_pdf_text(data: bytes) -> str:
@@ -80,7 +90,7 @@ def _get_materials_text(class_id: int, db: Session) -> str:
     return "\n\n".join(parts)
 
 
-def _ask_claude(system_prompt: str, history: list, user_message: str) -> str:
+def _ask_claude(system_prompt: str, history: list, user_message: str) -> tuple[str, list[str]]:
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not api_key:
         raise HTTPException(500, "AI service not configured")
@@ -95,8 +105,19 @@ def _ask_claude(system_prompt: str, history: list, user_message: str) -> str:
         max_tokens=1500,
         system=system_prompt,
         messages=messages,
+        tools=[_STUDY_TOOL],
+        tool_choice={"type": "tool", "name": "study_response"},
     )
-    return response.content[0].text
+
+    for block in response.content:
+        if block.type == "tool_use" and block.name == "study_response":
+            answer = (block.input.get("answer") or "").strip()
+            suggestions = [s for s in (block.input.get("suggestions") or []) if s][:3]
+            return answer, suggestions
+
+    # Fallback — should never reach here with forced tool_choice
+    text = next((getattr(b, "text", "") for b in response.content), "")
+    return text.strip(), []
 
 
 # ── endpoints ─────────────────────────────────────────────────────────────────
@@ -165,21 +186,12 @@ RULES:
 - You can summarize, explain concepts, list key points, or answer specific questions.
 - Do not make up information that is not in the materials.
 
-FORMATTING — follow these exactly:
-- Write in plain, clean text. Do NOT use any markdown symbols such as *, **, #, ##, _, ~~, or backticks.
-- When listing items, use numbered lists (1. 2. 3.) or lettered lists (a. b. c.).
-- Separate ideas with paragraph breaks, not symbols.
-- Keep your tone clear, friendly and student-focused.
+FORMATTING:
+- Write in plain, clean text. No markdown symbols (*, **, #, _, ~~, backticks).
+- Use numbered lists (1. 2. 3.) when listing items.
+- Separate ideas with paragraph breaks.
 
-FOLLOW-UP SUGGESTIONS — follow these exactly:
-After every response, add a new line containing exactly the word "FOLLOW-UP:" and then list exactly 2 or 3 short questions a student might want to ask next. Each question on its own line starting with a dash (-). Do not add any other text after the suggestions.
-
-Example of how to end every response:
-
-FOLLOW-UP:
-- What is the difference between X and Y?
-- Can you give an example of Z?
-- How does this relate to [topic from the material]?
+For the suggestions field, provide 2 or 3 natural follow-up questions a student would logically ask next given what was just discussed.
 
 COURSE MATERIALS:
 {materials_text}"""
@@ -192,14 +204,12 @@ COURSE MATERIALS:
     history = [{"role": r.role, "content": r.content} for r in history_rows[-MAX_HISTORY:]]
 
     try:
-        raw_reply = _ask_claude(system_prompt, history, user_message)
+        reply, suggestions = _ask_claude(system_prompt, history, user_message)
     except HTTPException:
         raise
     except Exception as exc:
         log.error("Claude API error: %s", exc)
         raise HTTPException(500, "AI service temporarily unavailable. Please try again.")
-
-    reply, suggestions = _parse_reply(raw_reply)
 
     db.add(models.AIChatMessage(
         student_id=current_user.id, class_id=class_id,
@@ -207,7 +217,7 @@ COURSE MATERIALS:
     ))
     db.add(models.AIChatMessage(
         student_id=current_user.id, class_id=class_id,
-        role="assistant", content=reply,  # store clean reply without FOLLOW-UP section
+        role="assistant", content=reply,
     ))
     db.commit()
 
