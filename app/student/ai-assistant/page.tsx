@@ -352,18 +352,15 @@ export default function AIAssistantPage() {
                 <ArrowLeft className="h-5 w-5" />
               </button>
 
-              <div className="h-9 w-9 rounded-full bg-primary-foreground/20 flex items-center justify-center shrink-0">
-                <Bot className="h-4 w-4" />
+              <div className="h-9 w-9 rounded-full bg-primary-foreground/20 flex items-center justify-center shrink-0 overflow-hidden">
+                <img src="/cortex-icon-light.svg" alt="Cortex" className="h-6 w-6" />
               </div>
 
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-sm truncate leading-tight">
                   {selected.course_code ?? selected.name}
                 </p>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
-                  <p className="text-xs text-primary-foreground/75">AI · online</p>
-                </div>
+                <p className="text-xs text-primary-foreground/75 mt-0.5">AI Study Assistant</p>
               </div>
 
               {/* Download conversation */}
