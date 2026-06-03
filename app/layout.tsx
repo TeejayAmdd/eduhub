@@ -17,8 +17,8 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'EduHub',
-  description: 'Education management platform',
+  title: 'Cortex',
+  description: 'Cortex Learning Platform',
   generator: 'v0.app',
   icons: {
     icon: [

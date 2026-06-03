@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import Image from 'next/image'
@@ -65,7 +65,7 @@ const testimonials = [
     name: 'Dr. Amara Osei',
     role: 'Senior Lecturer, Business Studies',
     avatar: 'AO',
-    quote: 'EduHub transformed how I manage my classes. The analytics show me exactly which students need support before they fall behind.',
+    quote: 'Cortex transformed how I manage my classes. The analytics show me exactly which students need support before they fall behind.',
   },
   {
     name: 'Marcus Thompson',
@@ -96,7 +96,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <GraduationCap className="h-7 w-7" />
-            <span className="text-xl font-bold">EduHub</span>
+            <span className="text-xl font-bold">Cortex</span>
           </div>
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
             <a href="#features" className="hover:text-foreground transition-colors">Features</a>
@@ -126,7 +126,7 @@ export default function LandingPage() {
                 </span>
               </h1>
               <p className="text-lg text-muted-foreground max-w-md leading-relaxed">
-                EduHub connects lecturers and students on one powerful platform — from course delivery and attendance to grades and analytics.
+                Cortex connects lecturers and students on one powerful platform — from course delivery and attendance to grades and analytics.
               </p>
               <div className="flex flex-wrap gap-4">
                 <Button size="lg" asChild>
@@ -363,7 +363,7 @@ export default function LandingPage() {
         <div className="max-w-2xl mx-auto space-y-6">
           <h2 className="text-3xl lg:text-5xl font-bold">Ready to transform your institution?</h2>
           <p className="text-muted-foreground text-lg">
-            Join thousands of educators and students already using EduHub. Get started for free today.
+            Join thousands of educators and students already using Cortex. Get started for free today.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Button size="lg" asChild>
@@ -381,10 +381,10 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-sm font-semibold">
             <GraduationCap className="h-5 w-5" />
-            EduHub
+            Cortex
           </div>
           <p className="text-xs text-muted-foreground text-center">
-            © {new Date().getFullYear()} EduHub. Built as a final year project. All rights reserved.
+            © {new Date().getFullYear()} Cortex. Built as a final year project. All rights reserved.
           </p>
           <div className="flex items-center gap-6 text-sm text-muted-foreground">
             <Link href="/login" className="hover:text-foreground transition-colors">Sign In</Link>
@@ -396,3 +396,4 @@ export default function LandingPage() {
     </div>
   )
 }
+

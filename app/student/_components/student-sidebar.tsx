@@ -11,7 +11,6 @@ import {
   Calendar,
   CheckSquare,
   FileText,
-  GraduationCap,
   Home,
   MessageSquare,
   PenSquare,
@@ -62,15 +61,14 @@ export function StudentSidebar({ isCollapsed, isMobileOpen, onMobileOpenChange }
       {/* Fills the Dynamic Island / notch area with sidebar colour */}
       <div className="shrink-0 bg-sidebar" style={{ height: 'env(safe-area-inset-top, 0px)' }} />
       <div className={cn('border-b border-sidebar-border py-6', isCollapsed ? 'px-3' : 'px-6')}>
-        <div className={cn('flex items-center gap-2', isCollapsed && 'justify-center')}>
-          <GraduationCap className="h-5 w-5 shrink-0" />
-          <h1 className={cn('text-xl font-semibold transition-all', isCollapsed && 'sr-only')}>
-            EduHub
-          </h1>
+        <div className={cn('flex items-center gap-2.5', isCollapsed && 'justify-center')}>
+          <img src="/cortex-icon.svg" alt="Cortex" className="h-8 w-8 shrink-0 rounded-lg dark:block hidden" />
+          <img src="/cortex-icon-light.svg" alt="Cortex" className="h-8 w-8 shrink-0 rounded-lg dark:hidden block" />
+          <div className={cn(isCollapsed && 'sr-only')}>
+            <h1 className="text-lg font-bold leading-tight">Cortex</h1>
+            <p className="text-[10px] text-sidebar-foreground/60 leading-none mt-0.5">Student Portal</p>
+          </div>
         </div>
-        {!isCollapsed && (
-          <p className="mt-1 text-xs text-sidebar-foreground/60">Student Portal</p>
-        )}
       </div>
 
       <nav className="flex-1 overflow-y-auto px-4 py-4">

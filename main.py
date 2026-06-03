@@ -63,8 +63,8 @@ def _run_db_migrations():
     # AI chat history table is created by create_all; no extra columns needed
 
 app = FastAPI(
-    title="EduHub API",
-    description="Backend API for the EduHub Learning Management System",
+    title="Cortex API",
+    description="Backend API for the Cortex Learning Platform",
     version="1.0.0",
 )
 

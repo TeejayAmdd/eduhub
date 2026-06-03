@@ -1,4 +1,4 @@
-"""
+﻿"""
 Email service — sends via Resend API (primary) or Gmail SMTP (fallback).
 Railway blocks outbound SMTP, so Resend (HTTPS-based) is the reliable path.
 """
@@ -21,7 +21,7 @@ def _send_via_resend(to: str, subject: str, html: str, api_key: str) -> None:
     try:
         import resend
         resend.api_key = api_key
-        from_addr = os.environ.get("RESEND_FROM", "EduHub <onboarding@resend.dev>")
+        from_addr = os.environ.get("RESEND_FROM", "Cortex <onboarding@resend.dev>")
         resend.Emails.send({
             "from": from_addr,
             "to": [to],
@@ -70,7 +70,7 @@ def _send_via_smtp(to: str, subject: str, html: str) -> None:
 # ── Public helpers ────────────────────────────────────────────────────────────
 
 def send_verification_code(to: str, name: str, code: str) -> None:
-    subject = "Your EduHub verification code"
+    subject = "Your Cortex verification code"
     html = f"""
 <!DOCTYPE html>
 <html>
@@ -80,14 +80,14 @@ def send_verification_code(to: str, name: str, code: str) -> None:
       <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08);">
 
         <tr><td style="background:linear-gradient(135deg,#4f46e5,#7c3aed);padding:32px 40px;text-align:center;">
-          <h1 style="margin:0;color:#fff;font-size:26px;font-weight:700;letter-spacing:-0.5px;">EduHub</h1>
-          <p style="margin:6px 0 0;color:rgba(255,255,255,.8);font-size:13px;">Lagos State University LMS</p>
+          <h1 style="margin:0;color:#fff;font-size:26px;font-weight:700;letter-spacing:-0.5px;">Cortex</h1>
+          <p style="margin:6px 0 0;color:rgba(255,255,255,.8);font-size:13px;">Cortex Learning Platform</p>
         </td></tr>
 
         <tr><td style="padding:40px;">
           <p style="margin:0 0 8px;font-size:16px;color:#1a1a2e;">Hi <strong>{name}</strong>,</p>
           <p style="margin:0 0 28px;font-size:15px;color:#555;line-height:1.6;">
-            Use the code below to verify your email address and activate your EduHub account.
+            Use the code below to verify your email address and activate your Cortex account.
           </p>
 
           <div style="background:#f0f0ff;border:2px dashed #4f46e5;border-radius:12px;padding:24px;text-align:center;margin-bottom:28px;">
@@ -100,7 +100,7 @@ def send_verification_code(to: str, name: str, code: str) -> None:
           </p>
 
           <p style="margin:0;font-size:13px;color:#aaa;border-top:1px solid #eee;padding-top:20px;">
-            If you did not create an EduHub account, you can safely ignore this email.
+            If you did not create an Cortex account, you can safely ignore this email.
           </p>
         </td></tr>
 
@@ -114,7 +114,7 @@ def send_verification_code(to: str, name: str, code: str) -> None:
 
 
 def send_welcome_student(to: str, name: str, matric: str, department: str, level: str) -> None:
-    subject = f"Welcome to EduHub, {name}! Your account is ready"
+    subject = f"Welcome to Cortex, {name}! Your account is ready"
     html = f"""
 <!DOCTYPE html>
 <html>
@@ -125,7 +125,7 @@ def send_welcome_student(to: str, name: str, matric: str, department: str, level
 
         <tr><td style="background:linear-gradient(135deg,#4f46e5,#7c3aed);padding:32px 40px;text-align:center;">
           <div style="font-size:40px;margin-bottom:8px;">&#127891;</div>
-          <h1 style="margin:0;color:#fff;font-size:24px;font-weight:700;">Welcome to EduHub!</h1>
+          <h1 style="margin:0;color:#fff;font-size:24px;font-weight:700;">Welcome to Cortex!</h1>
           <p style="margin:6px 0 0;color:rgba(255,255,255,.8);font-size:13px;">Your student account has been activated</p>
         </td></tr>
 
@@ -160,7 +160,7 @@ def send_welcome_student(to: str, name: str, matric: str, department: str, level
           </div>
 
           <p style="margin:0;font-size:13px;color:#aaa;border-top:1px solid #eee;padding-top:20px;text-align:center;">
-            <span style="color:#4f46e5;">EduHub — Lagos State University LMS</span>
+            <span style="color:#4f46e5;">Cortex — Cortex Learning Platform</span>
           </p>
         </td></tr>
 
@@ -181,7 +181,7 @@ def send_lecture_scheduled(to: str, name: str, course: str, title: str, schedule
     <tr><td align="center">
       <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08);">
         <tr><td style="background:linear-gradient(135deg,#4f46e5,#7c3aed);padding:28px 40px;">
-          <p style="margin:0;color:rgba(255,255,255,.7);font-size:12px;text-transform:uppercase;letter-spacing:1px;">EduHub · Lecture Scheduled</p>
+          <p style="margin:0;color:rgba(255,255,255,.7);font-size:12px;text-transform:uppercase;letter-spacing:1px;">Cortex · Lecture Scheduled</p>
           <h1 style="margin:8px 0 0;color:#fff;font-size:22px;">&#128197; {title}</h1>
         </td></tr>
         <tr><td style="padding:32px 40px;">
@@ -191,7 +191,7 @@ def send_lecture_scheduled(to: str, name: str, course: str, title: str, schedule
             <p style="margin:0 0 6px;font-size:13px;color:#888;text-transform:uppercase;letter-spacing:.5px;">Date &amp; Time</p>
             <p style="margin:0;font-size:18px;font-weight:700;color:#4f46e5;">{scheduled_at}</p>
           </div>
-          <p style="margin:0;font-size:13px;color:#aaa;border-top:1px solid #eee;padding-top:16px;">Log in to EduHub to view details.</p>
+          <p style="margin:0;font-size:13px;color:#aaa;border-top:1px solid #eee;padding-top:16px;">Log in to Cortex to view details.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -215,7 +215,7 @@ def send_lecture_live(to: str, name: str, course: str, title: str) -> None:
         </td></tr>
         <tr><td style="padding:32px 40px;text-align:center;">
           <p style="margin:0 0 8px;font-size:15px;color:#333;">Hi <strong>{name}</strong>,</p>
-          <p style="margin:0 0 24px;font-size:15px;color:#555;line-height:1.6;"><strong>{course}</strong> is live right now. Log in to EduHub and join immediately.</p>
+          <p style="margin:0 0 24px;font-size:15px;color:#555;line-height:1.6;"><strong>{course}</strong> is live right now. Log in to Cortex and join immediately.</p>
           <p style="margin:0;font-size:13px;color:#aaa;border-top:1px solid #eee;padding-top:16px;">Don't forget to click the attendance cookie to mark your presence.</p>
         </td></tr>
       </table>
@@ -233,7 +233,7 @@ def send_new_assignment(to: str, name: str, course: str, title: str, due_date: s
     <tr><td align="center">
       <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08);">
         <tr><td style="background:linear-gradient(135deg,#0f766e,#0d9488);padding:28px 40px;">
-          <p style="margin:0;color:rgba(255,255,255,.7);font-size:12px;text-transform:uppercase;letter-spacing:1px;">EduHub · New Assignment</p>
+          <p style="margin:0;color:rgba(255,255,255,.7);font-size:12px;text-transform:uppercase;letter-spacing:1px;">Cortex · New Assignment</p>
           <h1 style="margin:8px 0 0;color:#fff;font-size:22px;">&#128221; {title}</h1>
         </td></tr>
         <tr><td style="padding:32px 40px;">
@@ -246,7 +246,7 @@ def send_new_assignment(to: str, name: str, course: str, title: str, due_date: s
           <div style="background:#fff3cd;border-left:4px solid #f59e0b;border-radius:6px;padding:12px 16px;margin-bottom:24px;">
             <p style="margin:0;font-size:13px;color:#92400e;">&#9888;&#65039; Submit before the deadline. Late submissions may not be accepted.</p>
           </div>
-          <p style="margin:0;font-size:13px;color:#aaa;border-top:1px solid #eee;padding-top:16px;">Log in to EduHub to view and submit the assignment.</p>
+          <p style="margin:0;font-size:13px;color:#aaa;border-top:1px solid #eee;padding-top:16px;">Log in to Cortex to view and submit the assignment.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -263,7 +263,7 @@ def send_deadline_extended(to: str, name: str, course: str, title: str, old_date
     <tr><td align="center">
       <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08);">
         <tr><td style="background:linear-gradient(135deg,#d97706,#b45309);padding:28px 40px;">
-          <p style="margin:0;color:rgba(255,255,255,.7);font-size:12px;text-transform:uppercase;letter-spacing:1px;">EduHub · Deadline Extended</p>
+          <p style="margin:0;color:rgba(255,255,255,.7);font-size:12px;text-transform:uppercase;letter-spacing:1px;">Cortex · Deadline Extended</p>
           <h1 style="margin:8px 0 0;color:#fff;font-size:22px;">&#128197; {title}</h1>
         </td></tr>
         <tr><td style="padding:32px 40px;">
@@ -285,7 +285,7 @@ def send_deadline_extended(to: str, name: str, course: str, title: str, old_date
               </td>
             </tr>
           </table>
-          <p style="margin:0;font-size:13px;color:#aaa;border-top:1px solid #eee;padding-top:16px;">Log in to EduHub to submit your assignment.</p>
+          <p style="margin:0;font-size:13px;color:#aaa;border-top:1px solid #eee;padding-top:16px;">Log in to Cortex to submit your assignment.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -312,7 +312,7 @@ def send_assignment_graded(to: str, name: str, course: str, title: str, score: s
             <p style="margin:0 0 4px;font-size:12px;color:#666;text-transform:uppercase;letter-spacing:.5px;">Your Score</p>
             <p style="margin:0;font-size:36px;font-weight:800;color:#4f46e5;">{score}</p>
           </div>
-          <p style="margin:0;font-size:13px;color:#aaa;border-top:1px solid #eee;padding-top:16px;">Log in to EduHub to view detailed feedback.</p>
+          <p style="margin:0;font-size:13px;color:#aaa;border-top:1px solid #eee;padding-top:16px;">Log in to Cortex to view detailed feedback.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -329,7 +329,7 @@ def send_quiz_published(to: str, name: str, course: str, title: str, duration: i
     <tr><td align="center">
       <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08);">
         <tr><td style="background:linear-gradient(135deg,#7c3aed,#4f46e5);padding:28px 40px;">
-          <p style="margin:0;color:rgba(255,255,255,.7);font-size:12px;text-transform:uppercase;letter-spacing:1px;">EduHub · New Quiz</p>
+          <p style="margin:0;color:rgba(255,255,255,.7);font-size:12px;text-transform:uppercase;letter-spacing:1px;">Cortex · New Quiz</p>
           <h1 style="margin:8px 0 0;color:#fff;font-size:22px;">&#129514; {title}</h1>
         </td></tr>
         <tr><td style="padding:32px 40px;">
@@ -342,7 +342,7 @@ def send_quiz_published(to: str, name: str, course: str, title: str, duration: i
           <div style="background:#fff3cd;border-left:4px solid #f59e0b;border-radius:6px;padding:12px 16px;margin-bottom:24px;">
             <p style="margin:0;font-size:13px;color:#92400e;">&#9888;&#65039; You only get one attempt — the timer starts as soon as you begin.</p>
           </div>
-          <p style="margin:0;font-size:13px;color:#aaa;border-top:1px solid #eee;padding-top:16px;">Log in to EduHub to take the quiz.</p>
+          <p style="margin:0;font-size:13px;color:#aaa;border-top:1px solid #eee;padding-top:16px;">Log in to Cortex to take the quiz.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -359,7 +359,7 @@ def send_assignment_submitted(to: str, lecturer_name: str, student_name: str, ti
     <tr><td align="center">
       <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08);">
         <tr><td style="background:linear-gradient(135deg,#0f766e,#0d9488);padding:28px 40px;">
-          <p style="margin:0;color:rgba(255,255,255,.7);font-size:12px;text-transform:uppercase;letter-spacing:1px;">EduHub · Assignment Submission</p>
+          <p style="margin:0;color:rgba(255,255,255,.7);font-size:12px;text-transform:uppercase;letter-spacing:1px;">Cortex · Assignment Submission</p>
           <h1 style="margin:8px 0 0;color:#fff;font-size:22px;">&#128221; New Submission</h1>
         </td></tr>
         <tr><td style="padding:32px 40px;">
@@ -371,7 +371,7 @@ def send_assignment_submitted(to: str, lecturer_name: str, student_name: str, ti
               <tr><td style="padding:5px 0;font-size:14px;color:#666;">Course</td><td style="font-size:14px;color:#1a1a2e;font-weight:600;">{course}</td></tr>
             </table>
           </div>
-          <p style="margin:0;font-size:13px;color:#aaa;border-top:1px solid #eee;padding-top:16px;">Log in to EduHub to review and grade the submission.</p>
+          <p style="margin:0;font-size:13px;color:#aaa;border-top:1px solid #eee;padding-top:16px;">Log in to Cortex to review and grade the submission.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -381,7 +381,7 @@ def send_assignment_submitted(to: str, lecturer_name: str, student_name: str, ti
 
 
 def send_welcome_lecturer(to: str, name: str, staff_number: str, department: str) -> None:
-    subject = f"Welcome to EduHub, {name}! Your lecturer account is ready"
+    subject = f"Welcome to Cortex, {name}! Your lecturer account is ready"
     html = f"""
 <!DOCTYPE html>
 <html>
@@ -392,7 +392,7 @@ def send_welcome_lecturer(to: str, name: str, staff_number: str, department: str
 
         <tr><td style="background:linear-gradient(135deg,#0f766e,#0d9488);padding:32px 40px;text-align:center;">
           <div style="font-size:40px;margin-bottom:8px;">&#128218;</div>
-          <h1 style="margin:0;color:#fff;font-size:24px;font-weight:700;">Welcome to EduHub!</h1>
+          <h1 style="margin:0;color:#fff;font-size:24px;font-weight:700;">Welcome to Cortex!</h1>
           <p style="margin:6px 0 0;color:rgba(255,255,255,.8);font-size:13px;">Your lecturer account has been activated</p>
         </td></tr>
 
@@ -420,7 +420,7 @@ def send_welcome_lecturer(to: str, name: str, staff_number: str, department: str
           </table>
 
           <p style="margin:0;font-size:13px;color:#aaa;border-top:1px solid #eee;padding-top:20px;text-align:center;">
-            EduHub — Lagos State University LMS
+            Cortex — Cortex Learning Platform
           </p>
         </td></tr>
 
@@ -449,7 +449,7 @@ def send_tutor_selected(to: str, name: str, course: str) -> None:
         </td></tr>
         <tr><td style="padding:40px;">
           <p style="margin:0 0 16px;font-size:16px;color:#1a1a2e;">Hi <strong>{name}</strong>,</p>
-          <p style="margin:0 0 24px;font-size:15px;color:#444;">Great news! Your lecturer has selected you as one of the <strong>Peer Tutors</strong> for <strong>{course}</strong> in the EduHub Study Hub.</p>
+          <p style="margin:0 0 24px;font-size:15px;color:#444;">Great news! Your lecturer has selected you as one of the <strong>Peer Tutors</strong> for <strong>{course}</strong> in the Cortex Study Hub.</p>
           <div style="background:#f5f3ff;border-left:4px solid #7c3aed;border-radius:8px;padding:20px;margin-bottom:24px;">
             <p style="margin:0 0 12px;font-size:14px;font-weight:700;color:#7c3aed;">Your Tutor Privileges</p>
             <table width="100%" cellpadding="0" cellspacing="0">
@@ -458,8 +458,8 @@ def send_tutor_selected(to: str, name: str, course: str) -> None:
               <tr><td style="padding:6px 0;font-size:14px;color:#555;">&#127979; Help fellow students understand course material</td></tr>
             </table>
           </div>
-          <p style="margin:0 0 24px;font-size:14px;color:#555;">Log in to the EduHub Student Portal and visit the <strong>Study Hub</strong> section to access your tutor dashboard.</p>
-          <p style="margin:0;font-size:13px;color:#aaa;border-top:1px solid #eee;padding-top:20px;text-align:center;">EduHub — Lagos State University LMS</p>
+          <p style="margin:0 0 24px;font-size:14px;color:#555;">Log in to the Cortex Student Portal and visit the <strong>Study Hub</strong> section to access your tutor dashboard.</p>
+          <p style="margin:0;font-size:13px;color:#aaa;border-top:1px solid #eee;padding-top:20px;text-align:center;">Cortex — Cortex Learning Platform</p>
         </td></tr>
       </table>
     </td></tr>
@@ -480,7 +480,7 @@ def send_schedule_added(to: str, name: str, course: str, slots: list) -> None:
     <tr><td align="center">
       <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08);">
         <tr><td style="background:linear-gradient(135deg,#0f766e,#0d9488);padding:28px 40px;">
-          <p style="margin:0;color:rgba(255,255,255,.7);font-size:12px;text-transform:uppercase;letter-spacing:1px;">EduHub · Schedule Update</p>
+          <p style="margin:0;color:rgba(255,255,255,.7);font-size:12px;text-transform:uppercase;letter-spacing:1px;">Cortex · Schedule Update</p>
           <h1 style="margin:8px 0 0;color:#fff;font-size:22px;">&#128197; Timetable Updated</h1>
         </td></tr>
         <tr><td style="padding:32px 40px;">
@@ -492,9 +492,9 @@ def send_schedule_added(to: str, name: str, course: str, slots: list) -> None:
             <table width="100%" cellpadding="0" cellspacing="0">{slots_html}</table>
           </div>
           <p style="margin:0 0 16px;font-size:14px;color:#555;">
-            Log in to EduHub and visit <strong>My Schedule</strong> to see your full weekly timetable.
+            Log in to Cortex and visit <strong>My Schedule</strong> to see your full weekly timetable.
           </p>
-          <p style="margin:0;font-size:13px;color:#aaa;border-top:1px solid #eee;padding-top:16px;">EduHub — Lagos State University LMS</p>
+          <p style="margin:0;font-size:13px;color:#aaa;border-top:1px solid #eee;padding-top:16px;">Cortex — Cortex Learning Platform</p>
         </td></tr>
       </table>
     </td></tr>
@@ -511,7 +511,7 @@ def send_schedule_conflict(to: str, name: str, new_course: str, conflict_course:
     <tr><td align="center">
       <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08);">
         <tr><td style="background:linear-gradient(135deg,#d97706,#b45309);padding:28px 40px;">
-          <p style="margin:0;color:rgba(255,255,255,.7);font-size:12px;text-transform:uppercase;letter-spacing:1px;">EduHub · Schedule Conflict</p>
+          <p style="margin:0;color:rgba(255,255,255,.7);font-size:12px;text-transform:uppercase;letter-spacing:1px;">Cortex · Schedule Conflict</p>
           <h1 style="margin:8px 0 0;color:#fff;font-size:22px;">&#9888;&#65039; Timetable Clash Detected</h1>
         </td></tr>
         <tr><td style="padding:32px 40px;">
@@ -531,7 +531,7 @@ def send_schedule_conflict(to: str, name: str, new_course: str, conflict_course:
           <p style="margin:0 0 16px;font-size:14px;color:#555;">
             Both courses still appear on your schedule. Please contact your lecturer or academic advisor if you need help resolving this conflict.
           </p>
-          <p style="margin:0;font-size:13px;color:#aaa;border-top:1px solid #eee;padding-top:16px;">EduHub — Lagos State University LMS</p>
+          <p style="margin:0;font-size:13px;color:#aaa;border-top:1px solid #eee;padding-top:16px;">Cortex — Cortex Learning Platform</p>
         </td></tr>
       </table>
     </td></tr>
@@ -602,7 +602,7 @@ def send_weekly_timetable(to: str, name: str, week_label: str, rows: list, role:
       <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08);">
 
         <tr><td style="background:linear-gradient(135deg,{accent},{accent}cc);padding:28px 40px;">
-          <p style="margin:0;color:rgba(255,255,255,.75);font-size:12px;text-transform:uppercase;letter-spacing:1px;">EduHub · Weekly {role_label}</p>
+          <p style="margin:0;color:rgba(255,255,255,.75);font-size:12px;text-transform:uppercase;letter-spacing:1px;">Cortex · Weekly {role_label}</p>
           <h1 style="margin:8px 0 4px;color:#fff;font-size:22px;">&#128197; {week_label}</h1>
           <p style="margin:0;color:rgba(255,255,255,.8);font-size:13px;">Here's what's coming up for you this week</p>
         </td></tr>
@@ -623,10 +623,10 @@ def send_weekly_timetable(to: str, name: str, week_label: str, rows: list, role:
 
         <tr><td style="padding:24px 40px 32px;">
           <p style="margin:0 0 16px;font-size:13px;color:#555;">
-            Log in to EduHub to view your full {'schedule' if is_lecturer else 'timetable'} and manage your {'classes' if is_lecturer else 'courses'}.
+            Log in to Cortex to view your full {'schedule' if is_lecturer else 'timetable'} and manage your {'classes' if is_lecturer else 'courses'}.
           </p>
           <p style="margin:0;font-size:12px;color:#aaa;border-top:1px solid #eee;padding-top:16px;text-align:center;">
-            EduHub — Lagos State University LMS
+            Cortex — Cortex Learning Platform
           </p>
         </td></tr>
 
@@ -655,7 +655,7 @@ def send_tutor_rejected(to: str, name: str, course: str) -> None:
           <p style="margin:0 0 16px;font-size:16px;color:#1a1a2e;">Hi <strong>{name}</strong>,</p>
           <p style="margin:0 0 24px;font-size:15px;color:#444;">Thank you for applying to be a Peer Tutor for <strong>{course}</strong>. After careful consideration, your lecturer has selected other students for this session.</p>
           <p style="margin:0 0 24px;font-size:15px;color:#444;">We encourage you to keep participating in the Study Hub and apply again in future sessions.</p>
-          <p style="margin:0;font-size:13px;color:#aaa;border-top:1px solid #eee;padding-top:20px;text-align:center;">EduHub — Lagos State University LMS</p>
+          <p style="margin:0;font-size:13px;color:#aaa;border-top:1px solid #eee;padding-top:20px;text-align:center;">Cortex — Cortex Learning Platform</p>
         </td></tr>
       </table>
     </td></tr>
@@ -665,7 +665,7 @@ def send_tutor_rejected(to: str, name: str, course: str) -> None:
 
 
 def send_password_reset_code(to: str, name: str, code: str) -> None:
-    subject = "Reset your EduHub password"
+    subject = "Reset your Cortex password"
     html = f"""
 <!DOCTYPE html>
 <html>
@@ -677,13 +677,13 @@ def send_password_reset_code(to: str, name: str, code: str) -> None:
         <tr><td style="background:linear-gradient(135deg,#0f172a,#1e3a5f);padding:32px 40px;text-align:center;">
           <div style="font-size:48px;margin-bottom:8px;">&#128274;</div>
           <h1 style="margin:0;color:#fff;font-size:26px;font-weight:700;letter-spacing:-0.5px;">Password Reset</h1>
-          <p style="margin:6px 0 0;color:rgba(255,255,255,.75);font-size:13px;">EduHub — Lagos State University LMS</p>
+          <p style="margin:6px 0 0;color:rgba(255,255,255,.75);font-size:13px;">Cortex — Cortex Learning Platform</p>
         </td></tr>
 
         <tr><td style="padding:40px;">
           <p style="margin:0 0 8px;font-size:16px;color:#1a1a2e;">Hi <strong>{name}</strong>,</p>
           <p style="margin:0 0 28px;font-size:15px;color:#555;line-height:1.6;">
-            We received a request to reset your EduHub password. Use the code below to continue.
+            We received a request to reset your Cortex password. Use the code below to continue.
             If you did not make this request, you can safely ignore this email.
           </p>
 
@@ -697,7 +697,7 @@ def send_password_reset_code(to: str, name: str, code: str) -> None:
           </p>
 
           <p style="margin:0;font-size:13px;color:#aaa;border-top:1px solid #eee;padding-top:20px;text-align:center;">
-            EduHub — Lagos State University LMS
+            Cortex — Cortex Learning Platform
           </p>
         </td></tr>
 
@@ -709,7 +709,7 @@ def send_password_reset_code(to: str, name: str, code: str) -> None:
 
 
 def send_account_deleted(to: str, name: str, role: str, id_number: str) -> None:
-    subject = "Your EduHub account has been deleted"
+    subject = "Your Cortex account has been deleted"
     id_label = "Matric number" if role == "student" else "Staff number"
     html = f"""
 <!DOCTYPE html>
@@ -722,13 +722,13 @@ def send_account_deleted(to: str, name: str, role: str, id_number: str) -> None:
         <tr><td style="background:linear-gradient(135deg,#1a1a2e,#7f1d1d);padding:32px 40px;text-align:center;">
           <div style="font-size:48px;margin-bottom:8px;">&#128683;</div>
           <h1 style="margin:0;color:#fff;font-size:26px;font-weight:700;letter-spacing:-0.5px;">Account Deleted</h1>
-          <p style="margin:6px 0 0;color:rgba(255,255,255,.65);font-size:13px;">EduHub — Lagos State University LMS</p>
+          <p style="margin:6px 0 0;color:rgba(255,255,255,.65);font-size:13px;">Cortex — Cortex Learning Platform</p>
         </td></tr>
 
         <tr><td style="padding:40px;">
           <p style="margin:0 0 12px;font-size:16px;color:#1a1a2e;">Hi <strong>{name}</strong>,</p>
           <p style="margin:0 0 24px;font-size:15px;color:#555;line-height:1.6;">
-            This email confirms that your EduHub account has been <strong>permanently deleted</strong>
+            This email confirms that your Cortex account has been <strong>permanently deleted</strong>
             as requested. All your data including enrollments, submissions, attendance records
             and messages has been removed from our system.
           </p>
@@ -745,7 +745,7 @@ def send_account_deleted(to: str, name: str, role: str, id_number: str) -> None:
           </p>
 
           <p style="margin:0;font-size:13px;color:#aaa;border-top:1px solid #eee;padding-top:20px;text-align:center;">
-            Thank you for using EduHub &mdash; Lagos State University LMS
+            Thank you for using Cortex &mdash; Cortex Learning Platform
           </p>
         </td></tr>
 
@@ -754,3 +754,4 @@ def send_account_deleted(to: str, name: str, role: str, id_number: str) -> None:
   </table>
 </body></html>"""
     _send(to, subject, html)
+

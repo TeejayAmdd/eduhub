@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     SMTP_USER: Optional[str] = None          # your Gmail address
     SMTP_PASSWORD: Optional[str] = None      # 16-char App Password from Google
-    EMAIL_FROM_NAME: str = "EduHub"
+    EMAIL_FROM_NAME: str = "Cortex"
 
     class Config:
         env_file = ".env"

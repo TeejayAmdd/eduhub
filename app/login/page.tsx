@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -87,7 +87,7 @@ function LoginForm() {
 
           {/* Logo */}
           <div className="space-y-1">
-            <h1 className="text-2xl font-bold tracking-tight">Sign in to EduHub</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Sign in to Cortex</h1>
             <p className="text-sm text-muted-foreground">Lagos State University Learning Portal</p>
           </div>
 
@@ -262,3 +262,4 @@ export default function LoginPage() {
     </Suspense>
   )
 }
+

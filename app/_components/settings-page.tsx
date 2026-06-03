@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -472,7 +472,7 @@ export function SettingsPage({ role }: { role: 'lecturer' | 'student' }) {
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm font-medium mb-1">Theme</p>
-            <p className="text-xs text-muted-foreground mb-4">Choose how EduHub looks on this device.</p>
+            <p className="text-xs text-muted-foreground mb-4">Choose how Cortex looks on this device.</p>
             <div className="flex gap-3">
               {([
                 { value: 'light',  label: 'Light',  Icon: Sun },
@@ -531,7 +531,7 @@ export function SettingsPage({ role }: { role: 'lecturer' | 'student' }) {
                   <div>
                     <p className="text-sm font-semibold text-destructive">Delete Account</p>
                     <p className="text-sm text-muted-foreground mt-0.5">
-                      Permanently remove your account and all associated data from EduHub.
+                      Permanently remove your account and all associated data from Cortex.
                       This action <strong>cannot be undone</strong>.
                     </p>
                   </div>
@@ -695,3 +695,4 @@ function PasswordStrength({ password }: { password: string }) {
     </div>
   )
 }
+

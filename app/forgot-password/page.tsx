@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -144,7 +144,7 @@ export default function ForgotPasswordPage() {
           {/* Logo + back */}
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-3xl font-bold">EduHub</h1>
+              <h1 className="text-3xl font-bold">Cortex</h1>
               <p className="text-muted-foreground mt-0.5 text-sm">Lagos State University LMS</p>
             </div>
             <Link
@@ -469,3 +469,4 @@ export default function ForgotPasswordPage() {
     </div>
   )
 }
+

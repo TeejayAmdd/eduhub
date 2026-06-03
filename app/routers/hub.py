@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+﻿from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
 import re
@@ -18,7 +18,7 @@ router = APIRouter(prefix="/api/hub", tags=["Study Hub"])
 
 
 def _jitsi_room(class_id: int, tutor_id: int, session_id: int) -> str:
-    return f"eduhub-hub-{class_id}-{tutor_id}-{session_id}"
+    return f"Cortex-hub-{class_id}-{tutor_id}-{session_id}"
 
 
 def _broadcast_out(b: models.HubBroadcast, db: Session) -> HubBroadcastOut:
@@ -367,3 +367,4 @@ def end_live_session(
     db.commit()
     db.refresh(session)
     return _live_out(session, db)
+

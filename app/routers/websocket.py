@@ -1,4 +1,4 @@
-"""
+﻿"""
 WebSocket endpoint for live session attendance.
 
 Students connect via:
@@ -237,3 +237,4 @@ async def websocket_messages(
         pass
     finally:
         message_registry.pop(user_id, None)
+

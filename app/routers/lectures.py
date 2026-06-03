@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+﻿from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 from typing import List, Optional
@@ -122,7 +122,7 @@ def start_instant_lecture(
     )
     db.add(lecture)
     db.flush()
-    lecture.jitsi_room = f"EduHub-Class{payload.class_id}-Lec{lecture.id}"
+    lecture.jitsi_room = f"Cortex-Class{payload.class_id}-Lec{lecture.id}"
 
     _start_live_session(lecture, current_user.id, background_tasks, db)
 
@@ -197,7 +197,7 @@ def start_lecture(
     lecture.status = models.LectureStatusEnum.live
     lecture.started_at = datetime.now(timezone.utc)
     if not lecture.jitsi_room:
-        lecture.jitsi_room = f"EduHub-Class{lecture.class_id}-Lec{lecture.id}"
+        lecture.jitsi_room = f"Cortex-Class{lecture.class_id}-Lec{lecture.id}"
     db.flush()
 
     _start_live_session(lecture, current_user.id, background_tasks, db)
@@ -371,7 +371,7 @@ def get_jitsi_token(
 
     now = int(time.time())
     is_moderator = current_user.role == models.RoleEnum.lecturer
-    room = lecture.jitsi_room or f"EduHub-Class{lecture.class_id}-Lec{lecture.id}"
+    room = lecture.jitsi_room or f"Cortex-Class{lecture.class_id}-Lec{lecture.id}"
 
     payload = {
         "iss": "chat",
@@ -540,3 +540,4 @@ def class_stats(
         live_lecture=live_lecture,
         next_lecture=next_lecture,
     )
+

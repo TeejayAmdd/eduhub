@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -167,7 +167,7 @@ export default function SignupPage() {
         />
         <div className="absolute inset-0 bg-gradient-to-br from-primary/80 to-primary/40" />
         <div className="relative z-10 flex flex-col justify-end p-12 text-white">
-          <h1 className="text-4xl font-bold mb-3">EduHub</h1>
+          <h1 className="text-4xl font-bold mb-3">Cortex</h1>
           <p className="text-lg text-white/90 max-w-sm">
             Lagos State University's learning management platform — connecting students and lecturers seamlessly.
           </p>
@@ -208,7 +208,7 @@ export default function SignupPage() {
           {/* ── Step 1: Role selection ── */}
           {step === 0 && (
             <div className="space-y-6">
-              <p className="text-muted-foreground text-sm">Select how you'll be using EduHub.</p>
+              <p className="text-muted-foreground text-sm">Select how you'll be using Cortex.</p>
               <div className="grid grid-cols-2 gap-4">
                 <button
                   type="button"
@@ -528,3 +528,4 @@ export default function SignupPage() {
     </div>
   )
 }
+
