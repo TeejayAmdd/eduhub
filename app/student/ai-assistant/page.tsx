@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import {
-  Send, BookOpen, Loader2, Bot, User,
+  Send, BookOpen, Loader2, User,
   ArrowLeft, Sparkles, ChevronRight, MessageCircle,
   Copy, Check, Download,
 } from 'lucide-react'
@@ -410,8 +410,8 @@ export default function AIAssistantPage() {
                 history.map((msg, i) => (
                   <div key={i} className={cn('flex items-end gap-2', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
                     {msg.role === 'assistant' && (
-                      <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mb-0.5 self-start mt-1">
-                        <Bot className="h-3.5 w-3.5 text-primary" />
+                      <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mb-0.5 self-start mt-1 overflow-hidden">
+                        <img src="/cortex-icon-light.svg" alt="Cortex" className="h-4 w-4" />
                       </div>
                     )}
 
@@ -458,8 +458,8 @@ export default function AIAssistantPage() {
               {/* Typing indicator */}
               {sending && (
                 <div className="flex items-end gap-2 justify-start">
-                  <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mb-0.5">
-                    <Bot className="h-3.5 w-3.5 text-primary" />
+                  <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mb-0.5 overflow-hidden">
+                    <img src="/cortex-icon-light.svg" alt="Cortex" className="h-4 w-4" />
                   </div>
                   <div className="bg-background border border-border/60 rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1.5 shadow-sm">
                     <span className="h-2 w-2 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:0ms]" />
