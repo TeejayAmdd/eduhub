@@ -76,6 +76,7 @@ export default function AIAssistantPage() {
   const [sending, setSending]               = useState(false)
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [error, setError]                   = useState('')
+  const [suggestions, setSuggestions]       = useState<string[]>([])
   const bottomRef   = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -91,6 +92,7 @@ export default function AIAssistantPage() {
     setLoadingHistory(true)
     setHistory([])
     setError('')
+    setSuggestions([])
     apiFetch(`/api/ai/history/${selected.id}`)
       .then(setHistory)
       .catch(() => {})
@@ -106,6 +108,7 @@ export default function AIAssistantPage() {
     if (!msg || !selected || sending) return
     setInput('')
     setError('')
+    setSuggestions([])
     setHistory(h => [...h, { role: 'user', content: msg }])
     setSending(true)
     try {
@@ -114,6 +117,7 @@ export default function AIAssistantPage() {
         body: JSON.stringify({ message: msg }),
       })
       setHistory(h => [...h, { role: 'assistant', content: res.reply }])
+      setSuggestions(res.suggestions ?? [])
     } catch (e: any) {
       setError(e.message || 'Failed to get a response. Please try again.')
       setHistory(h => h.slice(0, -1))
@@ -361,6 +365,25 @@ export default function AIAssistantPage() {
             {error}
           </p>
         )}
+
+        {/* Follow-up suggestion chips */}
+        {!sending && suggestions.length > 0 && (
+          <div className="flex flex-col gap-2 pl-9">
+            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+              Suggested follow-ups
+            </p>
+            {suggestions.map((s, i) => (
+              <button
+                key={i}
+                onClick={() => send(s)}
+                className="text-left text-xs border border-primary/30 bg-primary/5 text-primary rounded-xl px-3.5 py-2 hover:bg-primary/10 transition-colors active:scale-[0.98] w-fit max-w-[85%]"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div ref={bottomRef} />
       </div>
 

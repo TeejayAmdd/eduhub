@@ -20,6 +20,22 @@ router = APIRouter(prefix="/api/ai", tags=["AI Study Assistant"])
 MAX_HISTORY    = 20
 MAX_TEXT_CHARS = 80_000
 UPLOAD_DIR     = os.path.join(os.path.dirname(__file__), "..", "..", "uploads", "materials")
+SUGGESTIONS_MARKER = "FOLLOW-UP:"
+
+
+def _parse_reply(raw: str) -> tuple[str, list[str]]:
+    """Split Claude output into (clean_reply, suggestions_list)."""
+    idx = raw.find(SUGGESTIONS_MARKER)
+    if idx == -1:
+        return raw.strip(), []
+    reply = raw[:idx].strip()
+    after = raw[idx + len(SUGGESTIONS_MARKER):].strip()
+    suggestions = [
+        line.lstrip("-•* 0123456789.)").strip()
+        for line in after.splitlines()
+        if line.strip() and line.strip() not in ("-", "•", "*")
+    ][:3]
+    return reply, [s for s in suggestions if s]
 
 
 def _extract_pdf_text(data: bytes) -> str:
@@ -76,7 +92,7 @@ def _ask_claude(system_prompt: str, history: list, user_message: str) -> str:
 
     response = client.messages.create(
         model="claude-haiku-4-5-20251001",
-        max_tokens=1024,
+        max_tokens=1500,
         system=system_prompt,
         messages=messages,
     )
@@ -149,6 +165,22 @@ RULES:
 - You can summarize, explain concepts, list key points, or answer specific questions.
 - Do not make up information that is not in the materials.
 
+FORMATTING — follow these exactly:
+- Write in plain, clean text. Do NOT use any markdown symbols such as *, **, #, ##, _, ~~, or backticks.
+- When listing items, use numbered lists (1. 2. 3.) or lettered lists (a. b. c.).
+- Separate ideas with paragraph breaks, not symbols.
+- Keep your tone clear, friendly and student-focused.
+
+FOLLOW-UP SUGGESTIONS — follow these exactly:
+After every response, add a new line containing exactly the word "FOLLOW-UP:" and then list exactly 2 or 3 short questions a student might want to ask next. Each question on its own line starting with a dash (-). Do not add any other text after the suggestions.
+
+Example of how to end every response:
+
+FOLLOW-UP:
+- What is the difference between X and Y?
+- Can you give an example of Z?
+- How does this relate to [topic from the material]?
+
 COURSE MATERIALS:
 {materials_text}"""
 
@@ -160,12 +192,14 @@ COURSE MATERIALS:
     history = [{"role": r.role, "content": r.content} for r in history_rows[-MAX_HISTORY:]]
 
     try:
-        ai_reply = _ask_claude(system_prompt, history, user_message)
+        raw_reply = _ask_claude(system_prompt, history, user_message)
     except HTTPException:
         raise
     except Exception as exc:
         log.error("Claude API error: %s", exc)
         raise HTTPException(500, "AI service temporarily unavailable. Please try again.")
+
+    reply, suggestions = _parse_reply(raw_reply)
 
     db.add(models.AIChatMessage(
         student_id=current_user.id, class_id=class_id,
@@ -173,11 +207,11 @@ COURSE MATERIALS:
     ))
     db.add(models.AIChatMessage(
         student_id=current_user.id, class_id=class_id,
-        role="assistant", content=ai_reply,
+        role="assistant", content=reply,  # store clean reply without FOLLOW-UP section
     ))
     db.commit()
 
-    return {"reply": ai_reply}
+    return {"reply": reply, "suggestions": suggestions}
 
 
 @router.get("/history/{class_id}")
