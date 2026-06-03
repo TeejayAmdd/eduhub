@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Send, Trash2, BookOpen, Loader2, Bot, User, ArrowLeft, Sparkles } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
+import {
+  Send, Trash2, BookOpen, Loader2, Bot, User,
+  ArrowLeft, Sparkles, ChevronRight, MessageCircle,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -46,22 +47,36 @@ interface ChatMessage {
 }
 
 const QUICK_PROMPTS = [
-  'Summarize the key points',
-  'What are the main topics covered?',
+  'Summarise the key points',
+  'What are the main topics?',
   'Explain the most important concepts',
-  'Give me a study guide for this material',
+  'Give me a study guide',
+  'List definitions I should know',
 ]
 
+/* ─── Initials avatar ──────────────────────────────────────────────── */
+function CourseAvatar({ name, active }: { name: string; active?: boolean }) {
+  const initials = name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
+  return (
+    <div className={cn(
+      'h-11 w-11 rounded-full flex items-center justify-center shrink-0 text-sm font-bold',
+      active ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-primary/10 text-primary',
+    )}>
+      {initials || <BookOpen className="h-5 w-5" />}
+    </div>
+  )
+}
+
 export default function AIAssistantPage() {
-  const [classes, setClasses]         = useState<AIClass[]>([])
+  const [classes, setClasses]               = useState<AIClass[]>([])
   const [loadingClasses, setLoadingClasses] = useState(true)
-  const [selected, setSelected]       = useState<AIClass | null>(null)
-  const [history, setHistory]         = useState<ChatMessage[]>([])
-  const [input, setInput]             = useState('')
-  const [sending, setSending]         = useState(false)
+  const [selected, setSelected]             = useState<AIClass | null>(null)
+  const [history, setHistory]               = useState<ChatMessage[]>([])
+  const [input, setInput]                   = useState('')
+  const [sending, setSending]               = useState(false)
   const [loadingHistory, setLoadingHistory] = useState(false)
-  const [error, setError]             = useState('')
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const [error, setError]                   = useState('')
+  const bottomRef   = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
@@ -105,7 +120,7 @@ export default function AIAssistantPage() {
       setInput(msg)
     } finally {
       setSending(false)
-      textareaRef.current?.focus()
+      setTimeout(() => textareaRef.current?.focus(), 50)
     }
   }
 
@@ -116,76 +131,103 @@ export default function AIAssistantPage() {
     setError('')
   }
 
-  const withMaterials = classes.filter(c => c.has_materials)
+  const withMaterials    = classes.filter(c => c.has_materials)
   const withoutMaterials = classes.filter(c => !c.has_materials)
 
-  // ── Course list panel ──────────────────────────────────────────────────────
+  /* ─── Course list panel ──────────────────────────────────────────── */
   const CourseList = () => (
     <div className="flex flex-col h-full">
-      <div className="px-4 py-5 border-b">
-        <div className="flex items-center gap-2 mb-1">
-          <Sparkles className="h-5 w-5 text-primary" />
-          <h1 className="font-semibold text-base">AI Study Assistant</h1>
+      {/* Header */}
+      <div className="bg-primary text-primary-foreground px-4 pt-5 pb-4 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-primary-foreground/20 flex items-center justify-center">
+            <Sparkles className="h-5 w-5" />
+          </div>
+          <div>
+            <h1 className="font-bold text-base leading-tight">AI Study Assistant</h1>
+            <p className="text-xs text-primary-foreground/70 mt-0.5">Powered by your course materials</p>
+          </div>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Select a course to chat with AI about your lecture materials
+      </div>
+
+      {/* Search-style subheader */}
+      <div className="px-4 py-2.5 border-b bg-muted/40">
+        <p className="text-xs text-muted-foreground font-medium">
+          {withMaterials.length} course{withMaterials.length !== 1 ? 's' : ''} ready to chat
         </p>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
+      {/* Course items */}
+      <div className="flex-1 overflow-y-auto">
         {loadingClasses ? (
-          <div className="flex justify-center pt-8">
+          <div className="flex justify-center pt-12">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : classes.length === 0 ? (
-          <div className="flex flex-col items-center justify-center pt-12 text-center text-muted-foreground px-4 gap-2">
-            <BookOpen className="h-10 w-10 opacity-30" />
-            <p className="font-medium text-sm">No courses yet</p>
-            <p className="text-xs">Enroll in a course first, then your lecturer needs to upload PDF materials before the AI can help.</p>
+          <div className="flex flex-col items-center justify-center pt-16 text-center text-muted-foreground px-6 gap-3">
+            <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+              <BookOpen className="h-8 w-8 opacity-40" />
+            </div>
+            <div>
+              <p className="font-semibold text-sm">No courses yet</p>
+              <p className="text-xs mt-1 leading-relaxed">
+                Enrol in a course first. Your lecturer then needs to upload PDF materials before the AI can help.
+              </p>
+            </div>
           </div>
         ) : (
           <>
-            {withMaterials.length > 0 && (
-              <>
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide px-2 pt-1 pb-0.5">
-                  Ready to chat
-                </p>
-                {withMaterials.map(cls => (
-                  <button
-                    key={cls.id}
-                    onClick={() => setSelected(cls)}
-                    className={cn(
-                      'w-full text-left rounded-lg px-3 py-2.5 transition-colors group',
-                      selected?.id === cls.id
-                        ? 'bg-primary text-primary-foreground'
-                        : 'hover:bg-muted',
-                    )}
-                  >
-                    <p className={cn('font-medium text-sm truncate', selected?.id === cls.id ? 'text-primary-foreground' : '')}>
-                      {cls.course_code ? `${cls.course_code} — ` : ''}{cls.name}
-                    </p>
-                    <p className={cn('text-xs mt-0.5', selected?.id === cls.id ? 'text-primary-foreground/70' : 'text-muted-foreground')}>
-                      {cls.pdf_count} material{cls.pdf_count !== 1 ? 's' : ''} available
-                    </p>
-                  </button>
-                ))}
-              </>
-            )}
+            {withMaterials.map(cls => (
+              <button
+                key={cls.id}
+                onClick={() => setSelected(cls)}
+                className={cn(
+                  'w-full flex items-center gap-3 px-4 py-3.5 border-b border-border/60 transition-colors active:bg-muted/80',
+                  selected?.id === cls.id ? 'bg-primary/5' : 'hover:bg-muted/50',
+                )}
+              >
+                <CourseAvatar name={cls.name} />
+                <div className="flex-1 min-w-0 text-left">
+                  <p className="font-semibold text-sm truncate">
+                    {cls.course_code ? `${cls.course_code}` : cls.name}
+                  </p>
+                  {cls.course_code && (
+                    <p className="text-xs text-muted-foreground truncate mt-0.5">{cls.name}</p>
+                  )}
+                  <p className="text-xs text-primary mt-0.5 font-medium">
+                    {cls.pdf_count} material{cls.pdf_count !== 1 ? 's' : ''} · tap to chat
+                  </p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+              </button>
+            ))}
 
             {withoutMaterials.length > 0 && (
               <>
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide px-2 pt-3 pb-0.5">
-                  No materials yet
-                </p>
+                <div className="px-4 py-2 bg-muted/30">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    Waiting for materials
+                  </p>
+                </div>
                 {withoutMaterials.map(cls => (
                   <div
                     key={cls.id}
-                    className="w-full text-left rounded-lg px-3 py-2.5 opacity-50 cursor-not-allowed"
+                    className="w-full flex items-center gap-3 px-4 py-3.5 border-b border-border/60 opacity-50"
                   >
-                    <p className="font-medium text-sm truncate">
-                      {cls.course_code ? `${cls.course_code} — ` : ''}{cls.name}
-                    </p>
-                    <p className="text-xs mt-0.5 text-muted-foreground">Waiting for lecturer to upload PDFs</p>
+                    <div className="h-11 w-11 rounded-full bg-muted flex items-center justify-center shrink-0">
+                      <BookOpen className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0 text-left">
+                      <p className="font-semibold text-sm truncate">
+                        {cls.course_code ?? cls.name}
+                      </p>
+                      {cls.course_code && (
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">{cls.name}</p>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Awaiting lecturer upload
+                      </p>
+                    </div>
                   </div>
                 ))}
               </>
@@ -196,60 +238,73 @@ export default function AIAssistantPage() {
     </div>
   )
 
-  // ── Chat panel ─────────────────────────────────────────────────────────────
+  /* ─── Chat panel ─────────────────────────────────────────────────── */
   const ChatPanel = () => (
     <div className="flex flex-col h-full">
+
       {/* Chat header */}
-      <div className="border-b px-4 py-3 flex items-center gap-3 shrink-0">
-        {/* Back button — mobile only */}
+      <div className="bg-primary text-primary-foreground px-4 py-3 flex items-center gap-3 shrink-0 shadow-sm">
         <button
-          className="md:hidden -ml-1 p-1 rounded-md hover:bg-muted"
+          className="md:hidden -ml-1 h-8 w-8 rounded-full flex items-center justify-center hover:bg-primary-foreground/10 transition-colors"
           onClick={() => setSelected(null)}
+          aria-label="Back to courses"
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
 
-        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-          <Bot className="h-4 w-4 text-primary" />
+        <div className="h-9 w-9 rounded-full bg-primary-foreground/20 flex items-center justify-center shrink-0">
+          <Bot className="h-4 w-4" />
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-sm truncate">
-            {selected?.course_code ? `${selected.course_code} — ` : ''}{selected?.name}
+          <p className="font-semibold text-sm truncate leading-tight">
+            {selected?.course_code ?? selected?.name}
           </p>
-          <p className="text-xs text-muted-foreground">AI Study Assistant</p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
+            <p className="text-xs text-primary-foreground/75">AI · online</p>
+          </div>
         </div>
 
         {history.length > 0 && (
-          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={clearHistory}>
-            <Trash2 className="h-4 w-4 text-muted-foreground" />
-          </Button>
+          <button
+            onClick={clearHistory}
+            className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-primary-foreground/10 transition-colors"
+            aria-label="Clear chat"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
         )}
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+      {/* Messages area */}
+      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3"
+        style={{ background: 'var(--chat-bg, hsl(var(--muted)/0.3))' }}
+      >
         {loadingHistory ? (
-          <div className="flex justify-center pt-10">
+          <div className="flex justify-center pt-12">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : history.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center gap-4 px-4">
-            <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center">
-              <Sparkles className="h-7 w-7 text-primary" />
+          /* Empty state */
+          <div className="flex flex-col items-center justify-center min-h-[60%] text-center gap-5 px-4 pt-6">
+            <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+              <Sparkles className="h-8 w-8 text-primary" />
             </div>
             <div>
-              <p className="font-semibold">Ask anything about {selected?.name}</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Based on your lecturer's uploaded materials
+              <p className="font-bold text-base">Ask anything about</p>
+              <p className="font-bold text-base text-primary">{selected?.name}</p>
+              <p className="text-xs text-muted-foreground mt-1.5">
+                Answers grounded in your lecturer's uploaded materials
               </p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-sm mt-2">
+            {/* Quick prompt chips */}
+            <div className="flex flex-wrap gap-2 justify-center max-w-xs">
               {QUICK_PROMPTS.map(p => (
                 <button
                   key={p}
                   onClick={() => send(p)}
-                  className="text-xs text-left border rounded-xl px-3 py-2.5 hover:bg-muted transition-colors"
+                  className="text-xs border border-border bg-background rounded-full px-3.5 py-1.5 hover:bg-muted transition-colors active:scale-95"
                 >
                   {p}
                 </button>
@@ -257,23 +312,29 @@ export default function AIAssistantPage() {
             </div>
           </div>
         ) : (
+          /* Messages */
           history.map((msg, i) => (
-            <div key={i} className={cn('flex gap-2.5', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
+            <div
+              key={i}
+              className={cn('flex items-end gap-2', msg.role === 'user' ? 'justify-end' : 'justify-start')}
+            >
               {msg.role === 'assistant' && (
-                <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mb-0.5">
                   <Bot className="h-3.5 w-3.5 text-primary" />
                 </div>
               )}
+
               <div className={cn(
-                'max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap leading-relaxed',
+                'max-w-[82%] rounded-2xl px-3.5 py-2.5 text-sm whitespace-pre-wrap leading-relaxed shadow-sm',
                 msg.role === 'user'
                   ? 'bg-primary text-primary-foreground rounded-br-sm'
-                  : 'bg-muted rounded-bl-sm',
+                  : 'bg-background text-foreground rounded-bl-sm border border-border/60',
               )}>
                 {msg.content}
               </div>
+
               {msg.role === 'user' && (
-                <div className="h-7 w-7 rounded-full bg-primary flex items-center justify-center shrink-0 mt-0.5">
+                <div className="h-7 w-7 rounded-full bg-primary flex items-center justify-center shrink-0 mb-0.5">
                   <User className="h-3.5 w-3.5 text-primary-foreground" />
                 </div>
               )}
@@ -281,88 +342,108 @@ export default function AIAssistantPage() {
           ))
         )}
 
+        {/* Typing indicator */}
         {sending && (
-          <div className="flex gap-2.5 justify-start">
-            <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+          <div className="flex items-end gap-2 justify-start">
+            <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mb-0.5">
               <Bot className="h-3.5 w-3.5 text-primary" />
             </div>
-            <div className="bg-muted rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:0ms]" />
-              <span className="h-2 w-2 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:150ms]" />
-              <span className="h-2 w-2 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:300ms]" />
+            <div className="bg-background border border-border/60 rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1.5 shadow-sm">
+              <span className="h-2 w-2 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:0ms]" />
+              <span className="h-2 w-2 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:150ms]" />
+              <span className="h-2 w-2 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:300ms]" />
             </div>
           </div>
         )}
 
         {error && (
-          <p className="text-center text-sm text-destructive bg-destructive/10 rounded-lg px-4 py-2">{error}</p>
+          <p className="text-center text-xs text-destructive bg-destructive/10 rounded-xl px-4 py-2.5 mx-2">
+            {error}
+          </p>
         )}
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
-      <div className="border-t px-4 py-3 shrink-0 bg-background">
-        <div className="flex gap-2 items-end">
-          <Textarea
-            ref={textareaRef}
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-                send()
-              }
-            }}
-            placeholder="Ask a question… (Enter to send)"
-            className="min-h-[44px] max-h-32 resize-none text-sm"
-            rows={1}
-            disabled={sending}
-          />
-          <Button
-            size="icon"
-            className="shrink-0 h-11 w-11"
+      {/* Input bar — pill style */}
+      <div className="shrink-0 bg-background border-t border-border px-3 py-3 pb-safe">
+        <div className="flex items-end gap-2">
+          <div className="flex-1 flex items-end bg-muted rounded-2xl px-4 py-2 min-h-[44px] border border-border/60">
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={e => {
+                setInput(e.target.value)
+                e.target.style.height = 'auto'
+                e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'
+              }}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  send()
+                }
+              }}
+              placeholder="Ask about your course materials…"
+              className="flex-1 bg-transparent resize-none text-sm outline-none placeholder:text-muted-foreground leading-relaxed w-full"
+              rows={1}
+              disabled={sending}
+              style={{ height: '24px', maxHeight: '120px' }}
+            />
+          </div>
+
+          <button
             onClick={() => send()}
             disabled={!input.trim() || sending}
+            className={cn(
+              'h-11 w-11 rounded-full flex items-center justify-center shrink-0 transition-all',
+              input.trim() && !sending
+                ? 'bg-primary text-primary-foreground shadow-md active:scale-95'
+                : 'bg-muted text-muted-foreground cursor-not-allowed',
+            )}
+            aria-label="Send message"
           >
             {sending
               ? <Loader2 className="h-4 w-4 animate-spin" />
               : <Send className="h-4 w-4" />
             }
-          </Button>
+          </button>
         </div>
+
         <p className="text-[10px] text-muted-foreground mt-1.5 text-center">
-          Answers based on course materials only · {selected?.pdf_count ?? 0} PDF{(selected?.pdf_count ?? 0) !== 1 ? 's' : ''}
+          {selected?.pdf_count ?? 0} PDF{(selected?.pdf_count ?? 0) !== 1 ? 's' : ''} loaded · answers based on course materials only
         </p>
       </div>
     </div>
   )
 
+  /* ─── Layout ─────────────────────────────────────────────────────── */
   return (
-    // ── Desktop: two-column layout ─────────────────────────────────────────
-    // ── Mobile: show course list OR chat (not both)  ───────────────────────
     <div className="flex flex-1 min-h-0 overflow-hidden">
 
-      {/* Sidebar — always visible on desktop, hidden on mobile when chat is open */}
+      {/* Course list sidebar */}
       <div className={cn(
-        'flex-col border-r w-full md:w-72 lg:w-80 shrink-0',
+        'flex-col border-r w-full md:w-72 lg:w-80 shrink-0 bg-background',
         selected ? 'hidden md:flex' : 'flex',
       )}>
         <CourseList />
       </div>
 
-      {/* Chat area — hidden on mobile when no course selected */}
+      {/* Chat area */}
       <div className={cn(
-        'flex-col flex-1 min-w-0',
+        'flex-col flex-1 min-w-0 bg-background',
         selected ? 'flex' : 'hidden md:flex',
       )}>
         {selected ? (
           <ChatPanel />
         ) : (
-          <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground gap-3 px-8">
-            <Sparkles className="h-12 w-12 opacity-20" />
+          <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground gap-4 px-8">
+            <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center">
+              <MessageCircle className="h-8 w-8 opacity-30" />
+            </div>
             <div>
               <p className="font-semibold">Select a course</p>
-              <p className="text-sm mt-1">Pick a course from the left to start chatting with the AI</p>
+              <p className="text-sm mt-1 text-muted-foreground">
+                Pick a course from the sidebar to start chatting with the AI
+              </p>
             </div>
           </div>
         )}
