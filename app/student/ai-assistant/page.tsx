@@ -69,7 +69,7 @@ function CodeBlock({ language, code }: { language: string; code: string }) {
   }
 
   return (
-    <div className="rounded-xl overflow-hidden my-3 border border-zinc-700 text-sm">
+    <div className="rounded-xl overflow-hidden my-3 border border-zinc-700 text-sm w-full max-w-full">
       {/* Bar */}
       <div className="flex items-center justify-between px-4 py-2 bg-zinc-800 border-b border-zinc-700">
         <span className="text-xs font-mono text-zinc-400">{language || 'code'}</span>
@@ -87,9 +87,9 @@ function CodeBlock({ language, code }: { language: string; code: string }) {
       <SyntaxHighlighter
         language={language || 'text'}
         style={vscDarkPlus}
-        customStyle={{ margin: 0, borderRadius: 0, fontSize: '0.8rem', padding: '1rem' }}
+        customStyle={{ margin: 0, borderRadius: 0, fontSize: '0.78rem', padding: '1rem', overflowX: 'auto' }}
         showLineNumbers
-        wrapLongLines
+        wrapLongLines={false}
       >
         {code}
       </SyntaxHighlighter>
@@ -243,7 +243,7 @@ export default function AIAssistantPage() {
 
       {/* ── Course list sidebar ──────────────────────────────────────── */}
       <div className={cn(
-        'flex-col border-r w-full md:w-72 lg:w-80 shrink-0 bg-background',
+        'flex-col border-r w-full md:w-72 lg:w-80 shrink-0 bg-background overflow-hidden',
         selected ? 'hidden md:flex' : 'flex',
       )}>
         <div className="bg-primary text-primary-foreground px-4 pt-5 pb-4 shrink-0">
@@ -264,7 +264,7 @@ export default function AIAssistantPage() {
           </p>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto">
           {loadingClasses ? (
             <div className="flex justify-center pt-12">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -336,11 +336,11 @@ export default function AIAssistantPage() {
 
       {/* ── Chat area ────────────────────────────────────────────────── */}
       <div className={cn(
-        'flex-col flex-1 min-w-0 bg-background',
+        'flex flex-col flex-1 min-w-0 overflow-hidden bg-background',
         selected ? 'flex' : 'hidden md:flex',
       )}>
         {selected ? (
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
 
             {/* Chat header */}
             <div className="bg-primary text-primary-foreground px-4 py-3 flex items-center gap-3 shrink-0 shadow-sm">
@@ -380,7 +380,7 @@ export default function AIAssistantPage() {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-3 py-4 space-y-4 bg-muted/20">
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-3 py-4 space-y-4 bg-muted/20">
               {loadingHistory ? (
                 <div className="flex justify-center pt-12">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -418,10 +418,10 @@ export default function AIAssistantPage() {
                       </div>
                     )}
 
-                    <div className={cn('flex flex-col gap-1', msg.role === 'user' ? 'items-end max-w-[82%]' : 'items-start max-w-[88%]')}>
+                    <div className={cn('flex flex-col gap-1 min-w-0', msg.role === 'user' ? 'items-end max-w-[82%]' : 'items-start w-full max-w-[92%]')}>
                       {/* Bubble */}
                       <div className={cn(
-                        'rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed shadow-sm',
+                        'rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed shadow-sm w-full overflow-x-hidden',
                         msg.role === 'user'
                           ? 'bg-primary text-primary-foreground rounded-br-sm'
                           : 'bg-background text-foreground rounded-bl-sm border border-border/60',
