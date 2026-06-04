@@ -72,6 +72,9 @@ function VoiceNoteBubble({ msg, mine }: { msg: Message; mine: boolean }) {
   useEffect(() => {
     setLoadState('loading')
     setBlobUrl(null)
+    setPlaying(false)
+    setCurrentTime(0)
+    setDuration(0)
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
     const url = `${BASE}/api/messages/attachment/${msg.id}`
     let obj = ''
@@ -81,20 +84,27 @@ function VoiceNoteBubble({ msg, mine }: { msg: Message; mine: boolean }) {
         return r.blob()
       })
       .then((blob) => {
-        const audioBlob = blob.type.startsWith('audio/')
-          ? blob
-          : new Blob([blob], { type: 'audio/webm' })
+        // Use the response Content-Type first, then fall back to the stored type.
+        // Never hardcode audio/webm — MP4 voice notes from iOS would break.
+        const mime = blob.type.startsWith('audio/')
+          ? blob.type
+          : (msg.attachment_type?.startsWith('audio/') ? msg.attachment_type : 'audio/webm')
+        const audioBlob = blob.type === mime ? blob : new Blob([blob], { type: mime })
         obj = URL.createObjectURL(audioBlob)
         setBlobUrl(obj)
         setLoadState('ready')
       })
       .catch(() => setLoadState('error'))
     return () => { if (obj) URL.revokeObjectURL(obj) }
-  }, [msg.id])
+  }, [msg.id, msg.attachment_type])
 
   const toggle = () => {
-    if (!audioRef.current) return
-    playing ? audioRef.current.pause() : audioRef.current.play().catch(console.error)
+    if (!audioRef.current || loadState !== 'ready') return
+    if (playing) {
+      audioRef.current.pause()
+    } else {
+      audioRef.current.play().catch(() => setLoadState('error'))
+    }
   }
 
   const progress = duration > 0 ? currentTime / duration : 0
@@ -108,6 +118,7 @@ function VoiceNoteBubble({ msg, mine }: { msg: Message; mine: boolean }) {
           onEnded={() => { setPlaying(false); setCurrentTime(0) }}
           onTimeUpdate={() => setCurrentTime(audioRef.current?.currentTime ?? 0)}
           onLoadedMetadata={() => setDuration(audioRef.current?.duration ?? 0)}
+          onError={() => { setLoadState('error'); setPlaying(false) }}
         />
       )}
       <button onClick={toggle} disabled={loadState !== 'ready'}
@@ -127,18 +138,23 @@ function VoiceNoteBubble({ msg, mine }: { msg: Message; mine: boolean }) {
         <div className="flex items-end gap-[2px] h-5">
           {WAVE.map((h, i) => (
             <div key={i}
-              className={cn('w-[2px] rounded-full flex-shrink-0 transition-colors',
+              className={cn('w-[2px] rounded-full flex-shrink-0',
                 loadState === 'error'
                   ? 'bg-red-400/40'
                   : i / WAVE.length <= progress
                   ? mine ? 'bg-primary-foreground' : 'bg-primary'
                   : mine ? 'bg-primary-foreground/30' : 'bg-muted-foreground/40',
               )}
-              style={{ height: `${h}px` }} />
+              style={{
+                height: `${h}px`,
+                transformOrigin: 'center',
+                animation: playing ? `voice-wave ${0.7 + (i % 4) * 0.1}s ease-in-out infinite` : 'none',
+                animationDelay: `${(i * 55) % 500}ms`,
+              }} />
           ))}
         </div>
         <span className={cn('text-[10px]', mine ? 'text-primary-foreground/60' : 'text-muted-foreground')}>
-          {loadState === 'error' ? 'Failed to load' : formatDuration(playing ? currentTime : duration)}
+          {loadState === 'error' ? 'Cannot play — unsupported format' : formatDuration(playing ? currentTime : duration)}
         </span>
       </div>
     </div>
