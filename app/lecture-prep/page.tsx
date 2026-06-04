@@ -220,7 +220,7 @@ export default function LecturePrepPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
+    <div className="w-full px-4 py-8 space-y-8 min-w-0">
 
       {/* Header */}
       <div className="space-y-1">

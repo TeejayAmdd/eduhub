@@ -252,7 +252,7 @@ export default function ClassDashboardPage() {
 
   return (
     <PageContainer>
-      <div className="w-full max-w-6xl mx-auto space-y-5 sm:space-y-8 min-w-0">
+      <div className="w-full space-y-5 sm:space-y-8 min-w-0">
 
         {/* ── Back ──────────────────────────────────────────────────────────── */}
         <Button variant="ghost" size="sm" asChild className="-ml-2">
