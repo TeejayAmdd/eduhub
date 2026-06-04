@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import {
   Send, BookOpen, Loader2, User,
   ArrowLeft, Sparkles, ChevronRight, MessageCircle,
-  Copy, Check, Download,
+  Copy, Check, Download, ChevronDown, SquarePen, RefreshCw,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import ReactMarkdown from 'react-markdown'
@@ -97,46 +97,50 @@ function CodeBlock({ language, code }: { language: string; code: string }) {
   )
 }
 
-/* ── Renders AI message content: plain text + code blocks ─────────────── */
+/* ── Renders AI message content: markdown with code blocks ───────────── */
 function MessageContent({ content }: { content: string }) {
   return (
-    <ReactMarkdown
-      components={{
-        // Strip the <pre> wrapper — we handle it inside <code>
-        pre({ children }) {
-          return <>{children}</>
-        },
-        code({ className, children }) {
-          const match = /language-(\w+)/.exec(className || '')
-          const code = String(children).replace(/\n$/, '')
-          if (match) {
-            return <CodeBlock language={match[1]} code={code} />
-          }
-          return (
-            <code className="bg-zinc-800 text-pink-300 px-1.5 py-0.5 rounded text-[0.82em] font-mono">
-              {children}
-            </code>
-          )
-        },
-        p({ children }) {
-          return <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>
-        },
-        ol({ children }) {
-          return <ol className="list-decimal list-inside space-y-1 my-2 pl-1">{children}</ol>
-        },
-        ul({ children }) {
-          return <ul className="list-disc list-inside space-y-1 my-2 pl-1">{children}</ul>
-        },
-        li({ children }) {
-          return <li className="leading-relaxed">{children}</li>
-        },
-        strong({ children }) {
-          return <strong className="font-semibold">{children}</strong>
-        },
-      }}
-    >
-      {content}
-    </ReactMarkdown>
+    <div className="prose-ai">
+      <ReactMarkdown
+        components={{
+          pre({ children }) {
+            return <>{children}</>
+          },
+          code({ className, children }) {
+            const match = /language-(\w+)/.exec(className || '')
+            const code = String(children).replace(/\n$/, '')
+            if (match) {
+              return <CodeBlock language={match[1]} code={code} />
+            }
+            return (
+              <code className="bg-zinc-800 text-pink-300 px-1.5 py-0.5 rounded text-[0.82em] font-mono">
+                {children}
+              </code>
+            )
+          },
+          p({ children }) {
+            return <p className="mb-3 last:mb-0 leading-relaxed text-sm">{children}</p>
+          },
+          ol({ children }) {
+            return <ol className="list-decimal space-y-1.5 my-3 pl-5 text-sm">{children}</ol>
+          },
+          ul({ children }) {
+            return <ul className="list-disc space-y-1.5 my-3 pl-5 text-sm">{children}</ul>
+          },
+          li({ children }) {
+            return <li className="leading-relaxed">{children}</li>
+          },
+          strong({ children }) {
+            return <strong className="font-bold text-foreground">{children}</strong>
+          },
+          em({ children }) {
+            return <em className="italic">{children}</em>
+          },
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    </div>
   )
 }
 
@@ -162,8 +166,10 @@ export default function AIAssistantPage() {
   const [error, setError]                   = useState('')
   const [suggestions, setSuggestions]       = useState<string[]>([])
   const [copiedIdx, setCopiedIdx]           = useState<number | null>(null)
-  const bottomRef   = useRef<HTMLDivElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const [atBottom, setAtBottom]             = useState(true)
+  const bottomRef    = useRef<HTMLDivElement>(null)
+  const messagesRef  = useRef<HTMLDivElement>(null)
+  const textareaRef  = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     apiFetch('/api/ai/classes')
@@ -185,8 +191,19 @@ export default function AIAssistantPage() {
   }, [selected])
 
   useEffect(() => {
+    if (atBottom) bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [history, sending, atBottom])
+
+  const handleMessagesScroll = () => {
+    const el = messagesRef.current
+    if (!el) return
+    setAtBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 80)
+  }
+
+  const scrollToBottom = () => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [history, sending])
+    setAtBottom(true)
+  }
 
   const send = async (text?: string) => {
     const msg = (text ?? input).trim()
@@ -211,6 +228,15 @@ export default function AIAssistantPage() {
       setSending(false)
       setTimeout(() => textareaRef.current?.focus(), 50)
     }
+  }
+
+  const clearHistory = async () => {
+    if (!selected) return
+    await apiFetch(`/api/ai/history/${selected.id}`, { method: 'DELETE' }).catch(() => {})
+    setHistory([])
+    setError('')
+    setSuggestions([])
+    setInput('')
   }
 
   const copyMessage = (content: string, idx: number) => {
@@ -363,21 +389,36 @@ export default function AIAssistantPage() {
                 <p className="text-xs text-primary-foreground/75 mt-0.5">AI Study Assistant</p>
               </div>
 
-              {/* Download conversation */}
               {history.length > 0 && (
-                <button
-                  onClick={downloadConversation}
-                  className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-primary-foreground/10 transition-colors"
-                  aria-label="Download conversation"
-                  title="Download conversation"
-                >
-                  <Download className="h-4 w-4" />
-                </button>
+                <div className="flex items-center gap-1">
+                  {/* Download */}
+                  <button
+                    onClick={downloadConversation}
+                    className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-primary-foreground/10 transition-colors"
+                    aria-label="Download conversation"
+                    title="Download conversation"
+                  >
+                    <Download className="h-4 w-4" />
+                  </button>
+                  {/* New chat */}
+                  <button
+                    onClick={clearHistory}
+                    className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-primary-foreground/10 transition-colors"
+                    aria-label="New chat"
+                    title="New chat"
+                  >
+                    <SquarePen className="h-4 w-4" />
+                  </button>
+                </div>
               )}
             </div>
 
             {/* Messages */}
-            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-3 py-4 space-y-4 bg-muted/20">
+            <div
+              ref={messagesRef}
+              onScroll={handleMessagesScroll}
+              className="relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-3 py-4 space-y-4 bg-muted/20"
+            >
               {loadingHistory ? (
                 <div className="flex justify-center pt-12">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -461,18 +502,37 @@ export default function AIAssistantPage() {
                   <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mb-0.5 overflow-hidden">
                     <img src="/cortex-icon-light.svg" alt="Cortex" className="h-4 w-4" />
                   </div>
-                  <div className="bg-background border border-border/60 rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1.5 shadow-sm">
-                    <span className="h-2 w-2 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:0ms]" />
-                    <span className="h-2 w-2 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:150ms]" />
-                    <span className="h-2 w-2 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:300ms]" />
+                  <div className="bg-background border border-border/60 rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-2 shadow-sm">
+                    {history.filter(m => m.role === 'assistant').length === 0 ? (
+                      <span className="text-xs text-muted-foreground italic">
+                        Cortex is reading your materials…
+                      </span>
+                    ) : (
+                      <>
+                        <span className="h-2 w-2 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:0ms]" />
+                        <span className="h-2 w-2 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:150ms]" />
+                        <span className="h-2 w-2 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:300ms]" />
+                      </>
+                    )}
                   </div>
                 </div>
               )}
 
               {error && (
-                <p className="text-center text-xs text-destructive bg-destructive/10 rounded-xl px-4 py-2.5 mx-2">
-                  {error}
-                </p>
+                <div className="flex flex-col items-center gap-2 mx-2">
+                  <p className="text-center text-xs text-destructive bg-destructive/10 rounded-xl px-4 py-2.5 w-full">
+                    {error}
+                  </p>
+                  {input && (
+                    <button
+                      onClick={() => send()}
+                      className="flex items-center gap-1.5 text-xs text-primary border border-primary/30 bg-primary/5 rounded-full px-3.5 py-1.5 hover:bg-primary/10 transition-colors active:scale-95"
+                    >
+                      <RefreshCw className="h-3 w-3" />
+                      Try again
+                    </button>
+                  )}
+                </div>
               )}
 
               {/* Follow-up suggestion chips */}
@@ -494,6 +554,17 @@ export default function AIAssistantPage() {
               )}
 
               <div ref={bottomRef} />
+
+              {/* Scroll-to-bottom FAB */}
+              {!atBottom && (
+                <button
+                  onClick={scrollToBottom}
+                  className="sticky bottom-3 left-1/2 -translate-x-1/2 w-fit mx-auto flex items-center gap-1.5 bg-background border border-border shadow-md rounded-full px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:shadow-lg transition-all z-10"
+                >
+                  <ChevronDown className="h-3.5 w-3.5" />
+                  Latest message
+                </button>
+              )}
             </div>
 
             {/* Input bar */}
@@ -540,9 +611,14 @@ export default function AIAssistantPage() {
                 </button>
               </div>
 
-              <p className="text-[10px] text-muted-foreground mt-1.5 text-center">
-                {selected.pdf_count} PDF{selected.pdf_count !== 1 ? 's' : ''} loaded · answers based on course materials only
-              </p>
+              <div className="flex items-center justify-between mt-1.5 px-1">
+                <p className="text-[10px] text-muted-foreground">
+                  {selected.pdf_count} PDF{selected.pdf_count !== 1 ? 's' : ''} · course materials only
+                </p>
+                <p className="hidden sm:block text-[10px] text-muted-foreground">
+                  Enter to send · Shift+Enter for new line
+                </p>
+              </div>
             </div>
           </div>
         ) : (

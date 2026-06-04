@@ -31,11 +31,13 @@ _STUDY_TOOL = {
             "answer": {
                 "type": "string",
                 "description": (
-                    "The answer in plain text. "
-                    "No markdown except fenced code blocks (```language ... ```). "
-                    "No *, **, #, _, or ~~ outside of code fences. "
-                    "Use numbered lists (1. 2. 3.) for lists. "
-                    "Separate paragraphs with blank lines."
+                    "A well-formatted answer using this style: "
+                    "Use **bold** (double asterisks) for key terms, important concepts, and section headings. "
+                    "Use numbered lists (1. 2. 3.) for steps or ordered items. "
+                    "Use bullet points (- item) for unordered lists. "
+                    "Separate sections and paragraphs with blank lines. "
+                    "Wrap all code in fenced code blocks with a language name (```python, ```sql, etc.). "
+                    "Do NOT use # headings, _, or ~~ anywhere."
                 ),
             },
             "suggestions": {
@@ -103,22 +105,26 @@ def _ask_claude(system_prompt: str, history: list, user_message: str) -> tuple[s
 
     response = client.messages.create(
         model="claude-haiku-4-5-20251001",
-        max_tokens=1500,
+        max_tokens=4096,
         system=system_prompt,
         messages=messages,
         tools=[_STUDY_TOOL],
         tool_choice={"type": "tool", "name": "study_response"},
     )
 
+    # max_tokens hit before tool_use block completed — surface a clear error
+    if response.stop_reason == "max_tokens":
+        raise HTTPException(500, "The response was too long to complete. Try asking for a shorter summary or a specific section.")
+
     for block in response.content:
         if block.type == "tool_use" and block.name == "study_response":
             answer = (block.input.get("answer") or "").strip()
             suggestions = [s for s in (block.input.get("suggestions") or []) if s][:3]
+            if not answer:
+                raise HTTPException(500, "The AI returned an empty response. Please try again.")
             return answer, suggestions
 
-    # Fallback — should never reach here with forced tool_choice
-    text = next((getattr(b, "text", "") for b in response.content), "")
-    return text.strip(), []
+    raise HTTPException(500, "AI service returned an unexpected response. Please try again.")
 
 
 # ── endpoints ─────────────────────────────────────────────────────────────────
@@ -184,18 +190,27 @@ RULES:
 - Answer ONLY based on the course materials provided below.
 - If the answer is not in the materials, say "I can't find that in the course materials. Please ask your lecturer."
 - Be clear, concise and student-friendly.
-- You can summarize, explain concepts, list key points, or answer specific questions.
 - Do not make up information that is not in the materials.
+- Keep responses short and digestible — students read on mobile and won't read walls of text.
 
-FORMATTING:
-- Write in plain, clean text. No markdown symbols (*, **, #, _, ~~).
-- Use numbered lists (1. 2. 3.) when listing items.
-- Separate ideas with paragraph breaks.
-- For any code (Python, SQL, JavaScript, etc.), always wrap it in a fenced code block with the language name, like:
+SUMMARY RULE (very important):
+- If the student asks for a summary, overview, or "what are the key points", do NOT dump everything.
+- Instead, list the main topics covered as a numbered or bulleted list with one short sentence each.
+- End with: "Which of these would you like me to explain in more detail?"
+- This way the student can pick what they want to go deeper on.
+- Only give a full detailed explanation when the student asks about a specific topic.
+
+FORMATTING — follow these rules exactly, like ChatGPT does:
+- Use **bold** (double asterisks) for key terms, important concepts, and section headings. Example: **Algorithm** or **Key Concept:**.
+- Use numbered lists (1. 2. 3.) for steps or ordered items.
+- Use bullet points (- item) for unordered lists.
+- Separate sections with a blank line.
+- Do NOT use # headings, underscores (_), or strikethrough (~~) anywhere.
+- For any code (Python, SQL, JavaScript, etc.), wrap it in a fenced code block with the language name:
   ```python
   # your code here
   ```
-  Never write code inline without a code fence.
+  Never write code inline without a fence.
 
 For the suggestions field, provide 2 or 3 natural follow-up questions a student would logically ask next given what was just discussed.
 
