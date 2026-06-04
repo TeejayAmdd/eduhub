@@ -47,9 +47,38 @@ function isVoiceNote(msg: Message) {
   return isAudio(msg.attachment_type) || (msg.attachment_name?.startsWith('voice_') ?? false)
 }
 function formatDuration(secs: number) {
+  if (!isFinite(secs) || isNaN(secs) || secs < 0) return '0:00'
   const m = Math.floor(secs / 60)
   const s = Math.floor(secs % 60)
   return `${m}:${s.toString().padStart(2, '0')}`
+}
+
+function encodeWav(audioBuf: AudioBuffer): ArrayBuffer {
+  const numCh = audioBuf.numberOfChannels
+  const sr    = audioBuf.sampleRate
+  const len   = audioBuf.length * numCh * 2
+  const buf   = new ArrayBuffer(44 + len)
+  const dv    = new DataView(buf)
+  const str   = (off: number, s: string) => [...s].forEach((c, i) => dv.setUint8(off + i, c.charCodeAt(0)))
+  str(0, 'RIFF'); dv.setUint32(4, 36 + len, true); str(8, 'WAVE')
+  str(12, 'fmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true)
+  dv.setUint16(22, numCh, true); dv.setUint32(24, sr, true)
+  dv.setUint32(28, sr * numCh * 2, true); dv.setUint16(32, numCh * 2, true)
+  dv.setUint16(34, 16, true); str(36, 'data'); dv.setUint32(40, len, true)
+  let off = 44
+  for (let i = 0; i < audioBuf.length; i++)
+    for (let ch = 0; ch < numCh; ch++) {
+      const s = Math.max(-1, Math.min(1, audioBuf.getChannelData(ch)[i]))
+      dv.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7FFF, true); off += 2
+    }
+  return buf
+}
+
+async function convertToWav(blob: Blob): Promise<Blob> {
+  const ctx = new ((window as any).AudioContext || (window as any).webkitAudioContext)()
+  const audioBuffer = await ctx.decodeAudioData(await blob.arrayBuffer())
+  await ctx.close()
+  return new Blob([encodeWav(audioBuffer)], { type: 'audio/wav' })
 }
 
 function threadToContact(t: MessageThread): Contact {
@@ -66,7 +95,14 @@ function VoiceNoteBubble({ msg, mine }: { msg: Message; mine: boolean }) {
   const [playing, setPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
+  const [speed, setSpeed] = useState(1)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+
+  const cycleSpeed = () => {
+    const next = speed === 1 ? 1.5 : speed === 1.5 ? 2 : 1
+    setSpeed(next)
+    if (audioRef.current) audioRef.current.playbackRate = next
+  }
 
   useEffect(() => {
     setLoadState('loading')
@@ -74,6 +110,7 @@ function VoiceNoteBubble({ msg, mine }: { msg: Message; mine: boolean }) {
     setPlaying(false)
     setCurrentTime(0)
     setDuration(0)
+    setSpeed(1)
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
     const url = `${BASE}/api/messages/attachment/${msg.id}`
     let obj = ''
@@ -150,9 +187,25 @@ function VoiceNoteBubble({ msg, mine }: { msg: Message; mine: boolean }) {
               }} />
           ))}
         </div>
-        <span className={cn('text-[10px]', mine ? 'text-primary-foreground/60' : 'text-muted-foreground')}>
-          {loadState === 'error' ? 'Cannot play — unsupported format' : formatDuration(playing ? currentTime : duration)}
-        </span>
+        <div className="flex items-center justify-between">
+          <span className={cn('text-[10px]', mine ? 'text-primary-foreground/60' : 'text-muted-foreground')}>
+            {loadState === 'error' ? 'Cannot play' : formatDuration(playing ? currentTime : duration)}
+          </span>
+          {loadState === 'ready' && (
+            <button
+              onClick={cycleSpeed}
+              className={cn(
+                'text-[10px] font-bold px-1.5 py-0.5 rounded-md transition-colors',
+                mine
+                  ? 'text-primary-foreground/70 hover:bg-primary-foreground/20'
+                  : 'text-muted-foreground hover:bg-muted',
+                speed !== 1 && (mine ? 'bg-primary-foreground/20' : 'bg-muted'),
+              )}
+            >
+              {speed}×
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -612,9 +665,16 @@ export default function StudentMessagesPage() {
       recorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop())
         const finalMime = recorder.mimeType || mimeType || 'audio/webm'
-        const ext = finalMime.includes('ogg') ? '.ogg' : finalMime.includes('mp4') ? '.m4a' : '.webm'
-        const blob = new Blob(audioChunksRef.current, { type: finalMime })
-        const file = new File([blob], `voice_${Date.now()}${ext}`, { type: finalMime })
+        const rawBlob = new Blob(audioChunksRef.current, { type: finalMime })
+        let uploadBlob: Blob = rawBlob
+        let uploadMime = finalMime
+        let ext = finalMime.includes('ogg') ? '.ogg' : finalMime.includes('mp4') ? '.m4a' : '.webm'
+        try {
+          uploadBlob = await convertToWav(rawBlob)
+          uploadMime = 'audio/wav'
+          ext = '.wav'
+        } catch { /* keep original if conversion fails */ }
+        const file = new File([uploadBlob], `voice_${Date.now()}${ext}`, { type: uploadMime })
         if (autoSendRef.current && selectedRef.current) {
           autoSendRef.current = false
           setSending(true)
