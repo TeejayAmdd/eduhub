@@ -80,6 +80,7 @@ _ALLOWED_ORIGINS = {
     "https://v0-learning-manage.vercel.app",
     "https://steady-halva-7ce294.netlify.app",
     "https://eduhub-lasu.netlify.app",
+    "https://cortex-lasu.netlify.app",
 }
 
 
