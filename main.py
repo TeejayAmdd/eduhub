@@ -26,6 +26,7 @@ from app.routers.hub import router as hub_router
 from app.routers.materials import router as materials_router
 from app.routers.converter import router as converter_router
 from app.routers.ai import router as ai_router
+from app.routers.lecture_prep import router as lecture_prep_router
 
 # Ensure new models are registered with Base metadata before create_all
 import app.models  # noqa: F401 — side-effect import registers LiveSession, AttendanceCookie, CookieResponse
@@ -182,9 +183,7 @@ async def startup_event():
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",                        # Next.js local dev
-        "https://v0-learning-manage.vercel.app",        # old Vercel frontend
-        "https://steady-halva-7ce294.netlify.app",      # Netlify (old URL)
+        "http://localhost:3000",                        # Next.js local dev   
         "https://eduhub-lasu.netlify.app",              # Netlify (old name)
         "https://cortex-lasu.netlify.app",              # Netlify frontend (current)
     ],
@@ -218,6 +217,7 @@ app.include_router(materials_router)
 app.include_router(reports_router)
 app.include_router(converter_router)
 app.include_router(ai_router)
+app.include_router(lecture_prep_router)
 
 
 @app.get("/")
