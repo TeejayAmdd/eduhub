@@ -5,6 +5,7 @@ import {
   Send, BookOpen, Loader2, User,
   ArrowLeft, Sparkles, ChevronRight, MessageCircle,
   Copy, Check, Download, ChevronDown, SquarePen, RefreshCw,
+  History, CalendarDays,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import ReactMarkdown from 'react-markdown'
@@ -167,6 +168,11 @@ export default function AIAssistantPage() {
   const [suggestions, setSuggestions]       = useState<string[]>([])
   const [copiedIdx, setCopiedIdx]           = useState<number | null>(null)
   const [atBottom, setAtBottom]             = useState(true)
+  const [usage, setUsage]                   = useState<{ prompts_used: number; prompts_remaining: number; daily_limit: number } | null>(null)
+  const [showHistory, setShowHistory]       = useState(false)
+  const [allHistory, setAllHistory]         = useState<ChatMessage[]>([])
+  const [loadingAll, setLoadingAll]         = useState(false)
+  const [viewingDay, setViewingDay]         = useState<string | null>(null)
   const bottomRef    = useRef<HTMLDivElement>(null)
   const messagesRef  = useRef<HTMLDivElement>(null)
   const textareaRef  = useRef<HTMLTextAreaElement>(null)
@@ -184,10 +190,14 @@ export default function AIAssistantPage() {
     setHistory([])
     setError('')
     setSuggestions([])
+    setUsage(null)
     apiFetch(`/api/ai/history/${selected.id}`)
       .then(setHistory)
       .catch(() => {})
       .finally(() => setLoadingHistory(false))
+    apiFetch('/api/ai/usage')
+      .then(setUsage)
+      .catch(() => {})
   }, [selected])
 
   useEffect(() => {
@@ -205,9 +215,11 @@ export default function AIAssistantPage() {
     setAtBottom(true)
   }
 
+  const limitReached = usage !== null && usage.prompts_remaining === 0
+
   const send = async (text?: string) => {
     const msg = (text ?? input).trim()
-    if (!msg || !selected || sending) return
+    if (!msg || !selected || sending || limitReached) return
     setInput('')
     setError('')
     setSuggestions([])
@@ -220,6 +232,10 @@ export default function AIAssistantPage() {
       })
       setHistory(h => [...h, { role: 'assistant', content: res.reply }])
       setSuggestions(res.suggestions ?? [])
+      setAllHistory([])
+      if (res.prompts_remaining !== undefined) {
+        setUsage({ prompts_used: res.prompts_used, prompts_remaining: res.prompts_remaining, daily_limit: res.daily_limit })
+      }
     } catch (e: any) {
       setError(e.message || 'Failed to get a response. Please try again.')
       setHistory(h => h.slice(0, -1))
@@ -228,6 +244,44 @@ export default function AIAssistantPage() {
       setSending(false)
       setTimeout(() => textareaRef.current?.focus(), 50)
     }
+  }
+
+  const openHistory = async () => {
+    setShowHistory(true)
+    setViewingDay(null)
+    if (allHistory.length === 0 && selected) {
+      setLoadingAll(true)
+      try {
+        const data = await apiFetch(`/api/ai/history/${selected.id}`)
+        setAllHistory(data)
+      } catch {}
+      finally { setLoadingAll(false) }
+    }
+  }
+
+  const continueFromHistory = () => {
+    setHistory(allHistory)   // load full history back into chat view
+    setShowHistory(false)
+    setViewingDay(null)
+    setTimeout(() => textareaRef.current?.focus(), 100)
+  }
+
+  // Group messages by ISO date key "YYYY-MM-DD"
+  const groupByDay = (msgs: ChatMessage[]) =>
+    msgs.reduce<Record<string, ChatMessage[]>>((acc, msg) => {
+      const key = msg.created_at
+        ? new Date(msg.created_at).toISOString().split('T')[0]
+        : 'unknown'
+      ;(acc[key] ??= []).push(msg)
+      return acc
+    }, {})
+
+  const formatDayLabel = (iso: string) => {
+    const today = new Date().toISOString().split('T')[0]
+    const yest  = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+    if (iso === today) return 'Today'
+    if (iso === yest)  return 'Yesterday'
+    return new Date(iso).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })
   }
 
   const newChat = () => {
@@ -389,32 +443,154 @@ export default function AIAssistantPage() {
                 <p className="text-xs text-primary-foreground/75 mt-0.5">AI Study Assistant</p>
               </div>
 
-              {history.length > 0 && (
-                <div className="flex items-center gap-1">
-                  {/* Download */}
-                  <button
-                    onClick={downloadConversation}
-                    className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-primary-foreground/10 transition-colors"
-                    aria-label="Download conversation"
-                    title="Download conversation"
-                  >
-                    <Download className="h-4 w-4" />
-                  </button>
-                  {/* New chat — clears screen only, history saved */}
-                  <button
-                    onClick={newChat}
-                    className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-primary-foreground/10 transition-colors"
-                    aria-label="New chat"
-                    title="New chat (history is saved — reopen course to restore)"
-                  >
-                    <SquarePen className="h-4 w-4" />
-                  </button>
-                </div>
-              )}
+              <div className="flex items-center gap-1">
+                {/* Chat History */}
+                <button
+                  onClick={openHistory}
+                  className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-primary-foreground/10 transition-colors"
+                  aria-label="Chat history"
+                  title="Chat history"
+                >
+                  <History className="h-4 w-4" />
+                </button>
+                {history.length > 0 && (
+                  <>
+                    {/* Download */}
+                    <button
+                      onClick={downloadConversation}
+                      className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-primary-foreground/10 transition-colors"
+                      aria-label="Download conversation"
+                      title="Download conversation"
+                    >
+                      <Download className="h-4 w-4" />
+                    </button>
+                    {/* New chat */}
+                    <button
+                      onClick={newChat}
+                      className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-primary-foreground/10 transition-colors"
+                      aria-label="New chat"
+                      title="New chat (history is saved)"
+                    >
+                      <SquarePen className="h-4 w-4" />
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
 
-            {/* Messages */}
-            <div
+            {/* ── History panel ──────────────────────────────────────── */}
+            {showHistory && (() => {
+              const grouped = groupByDay(allHistory)
+              const days    = Object.keys(grouped).sort().reverse()
+              const dayMsgs = viewingDay ? grouped[viewingDay] ?? [] : []
+
+              return (
+                <div className="flex flex-col flex-1 min-h-0 overflow-hidden bg-background">
+                  {/* History sub-header */}
+                  <div className="flex items-center gap-2 px-4 py-3 border-b bg-muted/30 shrink-0">
+                    <button
+                      onClick={() => viewingDay ? setViewingDay(null) : setShowHistory(false)}
+                      className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-muted transition-colors"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                    </button>
+                    <p className="font-semibold text-sm">
+                      {viewingDay ? formatDayLabel(viewingDay) : 'Chat History'}
+                    </p>
+                    {viewingDay && (
+                      <button
+                        onClick={continueFromHistory}
+                        className="ml-auto text-xs bg-primary text-primary-foreground rounded-full px-3 py-1 font-medium hover:opacity-90 transition-opacity"
+                      >
+                        Continue this chat →
+                      </button>
+                    )}
+                  </div>
+
+                  {loadingAll ? (
+                    <div className="flex justify-center pt-12">
+                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : viewingDay ? (
+                    /* Day detail — read-only messages */
+                    <div className="flex-1 min-h-0 overflow-y-auto px-3 py-4 space-y-3 bg-muted/20">
+                      {dayMsgs.map((msg, i) => (
+                        <div key={i} className={cn('flex items-end gap-2', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
+                          {msg.role === 'assistant' && (
+                            <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mb-0.5 self-start mt-1 overflow-hidden">
+                              <img src="/cortex-icon-light.svg" alt="Cortex" className="h-4 w-4" />
+                            </div>
+                          )}
+                          <div className={cn(
+                            'rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed shadow-sm w-full overflow-x-hidden',
+                            msg.role === 'user'
+                              ? 'bg-primary text-primary-foreground rounded-br-sm max-w-[82%]'
+                              : 'bg-background text-foreground rounded-bl-sm border border-border/60 max-w-[92%]',
+                          )}>
+                            {msg.role === 'assistant'
+                              ? <MessageContent content={msg.content} />
+                              : <span className="whitespace-pre-wrap">{msg.content}</span>
+                            }
+                          </div>
+                          {msg.role === 'user' && (
+                            <div className="h-7 w-7 rounded-full bg-primary flex items-center justify-center shrink-0 mb-0.5">
+                              <User className="h-3.5 w-3.5 text-primary-foreground" />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      {/* Continue button at bottom */}
+                      <div className="pt-2 pb-1 flex justify-center">
+                        <button
+                          onClick={continueFromHistory}
+                          className="text-sm bg-primary text-primary-foreground rounded-full px-5 py-2 font-medium hover:opacity-90 transition-opacity shadow-md"
+                        >
+                          Continue this chat →
+                        </button>
+                      </div>
+                    </div>
+                  ) : days.length === 0 ? (
+                    /* No history yet */
+                    <div className="flex flex-col items-center justify-center flex-1 text-center text-muted-foreground gap-3 px-6">
+                      <CalendarDays className="h-10 w-10 opacity-30" />
+                      <div>
+                        <p className="font-semibold text-sm">No history yet</p>
+                        <p className="text-xs mt-1">Your conversations will appear here after you start chatting.</p>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Session list */
+                    <div className="flex-1 min-h-0 overflow-y-auto">
+                      {days.map(day => {
+                        const msgs    = grouped[day]
+                        const preview = msgs.find(m => m.role === 'user')?.content ?? ''
+                        const aiCount = msgs.filter(m => m.role === 'assistant').length
+                        return (
+                          <button
+                            key={day}
+                            onClick={() => setViewingDay(day)}
+                            className="w-full flex items-center gap-3 px-4 py-4 border-b border-border/60 hover:bg-muted/50 transition-colors active:bg-muted/80 text-left"
+                          >
+                            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                              <CalendarDays className="h-5 w-5 text-primary" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-sm">{formatDayLabel(day)}</p>
+                              <p className="text-xs text-muted-foreground truncate mt-0.5">{preview}</p>
+                              <p className="text-xs text-primary mt-0.5">{aiCount} AI response{aiCount !== 1 ? 's' : ''}</p>
+                            </div>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+
+            {/* ── Messages ───────────────────────────────────────────── */}
+            {!showHistory && <div
               ref={messagesRef}
               onScroll={handleMessagesScroll}
               className="relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-3 py-4 space-y-4 bg-muted/20"
@@ -565,61 +741,81 @@ export default function AIAssistantPage() {
                   Latest message
                 </button>
               )}
-            </div>
+            </div>}
 
-            {/* Input bar */}
-            <div className="shrink-0 bg-background border-t border-border px-3 py-3">
-              <div className="flex items-end gap-2">
-                <div className="flex-1 flex items-end bg-muted rounded-2xl px-4 py-2 min-h-[44px] border border-border/60">
-                  <textarea
-                    ref={textareaRef}
-                    value={input}
-                    onChange={e => {
-                      setInput(e.target.value)
-                      e.target.style.height = 'auto'
-                      e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'
-                    }}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault()
-                        send()
-                      }
-                    }}
-                    placeholder="Ask about your course materials…"
-                    className="flex-1 bg-transparent resize-none text-sm outline-none placeholder:text-muted-foreground leading-relaxed w-full"
-                    rows={1}
-                    disabled={sending}
-                    style={{ height: '24px', maxHeight: '120px' }}
-                  />
+            {/* Input bar — hidden when browsing history */}
+            {!showHistory && <div className="shrink-0 bg-background border-t border-border px-3 py-3">
+
+              {limitReached ? (
+                /* Limit reached banner */
+                <div className="rounded-2xl bg-destructive/10 border border-destructive/20 px-4 py-3 text-center">
+                  <p className="text-sm font-semibold text-destructive">Daily limit reached</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    You've used all {usage?.daily_limit} prompts for today. Come back tomorrow!
+                  </p>
                 </div>
-
-                <button
-                  onClick={() => send()}
-                  disabled={!input.trim() || sending}
-                  className={cn(
-                    'h-11 w-11 rounded-full flex items-center justify-center shrink-0 transition-all',
-                    input.trim() && !sending
-                      ? 'bg-primary text-primary-foreground shadow-md active:scale-95'
-                      : 'bg-muted text-muted-foreground cursor-not-allowed',
-                  )}
-                  aria-label="Send message"
-                >
-                  {sending
-                    ? <Loader2 className="h-4 w-4 animate-spin" />
-                    : <Send className="h-4 w-4" />
-                  }
-                </button>
-              </div>
+              ) : (
+                <div className="flex items-end gap-2">
+                  <div className="flex-1 flex items-end bg-muted rounded-2xl px-4 py-2 min-h-[44px] border border-border/60">
+                    <textarea
+                      ref={textareaRef}
+                      value={input}
+                      onChange={e => {
+                        setInput(e.target.value)
+                        e.target.style.height = 'auto'
+                        e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'
+                      }}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault()
+                          send()
+                        }
+                      }}
+                      placeholder="Ask about your course materials…"
+                      className="flex-1 bg-transparent resize-none text-sm outline-none placeholder:text-muted-foreground leading-relaxed w-full"
+                      rows={1}
+                      disabled={sending}
+                      style={{ height: '24px', maxHeight: '120px' }}
+                    />
+                  </div>
+                  <button
+                    onClick={() => send()}
+                    disabled={!input.trim() || sending}
+                    className={cn(
+                      'h-11 w-11 rounded-full flex items-center justify-center shrink-0 transition-all',
+                      input.trim() && !sending
+                        ? 'bg-primary text-primary-foreground shadow-md active:scale-95'
+                        : 'bg-muted text-muted-foreground cursor-not-allowed',
+                    )}
+                    aria-label="Send message"
+                  >
+                    {sending
+                      ? <Loader2 className="h-4 w-4 animate-spin" />
+                      : <Send className="h-4 w-4" />
+                    }
+                  </button>
+                </div>
+              )}
 
               <div className="flex items-center justify-between mt-1.5 px-1">
                 <p className="text-[10px] text-muted-foreground">
                   {selected.pdf_count} PDF{selected.pdf_count !== 1 ? 's' : ''} · course materials only
                 </p>
-                <p className="hidden sm:block text-[10px] text-muted-foreground">
-                  Enter to send · Shift+Enter for new line
-                </p>
+                {usage && !limitReached && (
+                  <p className={cn(
+                    'text-[10px] font-medium',
+                    usage.prompts_remaining <= 3 ? 'text-amber-500' : 'text-muted-foreground',
+                  )}>
+                    {usage.prompts_remaining}/{usage.daily_limit} prompts left today
+                  </p>
+                )}
+                {!usage && (
+                  <p className="hidden sm:block text-[10px] text-muted-foreground">
+                    Enter to send · Shift+Enter for new line
+                  </p>
+                )}
               </div>
-            </div>
+            </div>}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground gap-4 px-8">
