@@ -230,9 +230,9 @@ export default function AIAssistantPage() {
     }
   }
 
-  const clearHistory = async () => {
-    if (!selected) return
-    await apiFetch(`/api/ai/history/${selected.id}`, { method: 'DELETE' }).catch(() => {})
+  const newChat = () => {
+    // Clears the visible conversation only — history is still saved in the
+    // database and reloads the next time this course is opened.
     setHistory([])
     setError('')
     setSuggestions([])
@@ -400,12 +400,12 @@ export default function AIAssistantPage() {
                   >
                     <Download className="h-4 w-4" />
                   </button>
-                  {/* New chat */}
+                  {/* New chat — clears screen only, history saved */}
                   <button
-                    onClick={clearHistory}
+                    onClick={newChat}
                     className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-primary-foreground/10 transition-colors"
                     aria-label="New chat"
-                    title="New chat"
+                    title="New chat (history is saved — reopen course to restore)"
                   >
                     <SquarePen className="h-4 w-4" />
                   </button>
