@@ -23,5 +23,9 @@ export function ConditionalLayout({ children }: { children: React.ReactNode }) {
     return <>{children}</>
   }
 
+  if (pathname.startsWith('/onboarding')) {
+    return <>{children}</>
+  }
+
   return <AppShell>{children}</AppShell>
 }

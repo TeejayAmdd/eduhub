@@ -117,6 +117,12 @@ export const auth = {
       { method: 'POST', body: JSON.stringify(params) },
     ),
 
+  forgotVerifyCode: (email: string, code: string) =>
+    request<{ valid: boolean }>(
+      '/api/auth/forgot-password/verify-code',
+      { method: 'POST', body: JSON.stringify({ email, code }) },
+    ),
+
   forgotReset: (email: string, code: string, password: string) =>
     request<{ message: string }>(
       '/api/auth/forgot-password/reset',

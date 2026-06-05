@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useTheme } from 'next-themes'
+import { useTheme } from '@/components/theme-provider'
 import {
   User, Lock, Bell, Info, LogOut, CheckCircle2, AlertCircle,
   Eye, EyeOff, Loader2, Shield, GraduationCap, Hash, Mail, BadgeCheck,

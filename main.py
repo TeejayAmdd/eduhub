@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()  # ensure .env values are in os.environ before any router imports
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 

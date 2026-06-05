@@ -1,6 +1,6 @@
 from sqlalchemy import (
     Column, Integer, String, Text, Float,
-    DateTime, Date, Time, Boolean, ForeignKey, Enum, Index, LargeBinary
+    DateTime, Date, Time, Boolean, ForeignKey, Enum, Index, LargeBinary, JSON
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -444,6 +444,21 @@ class CourseMaterial(Base):
 
     class_ = relationship("Class")
     uploader = relationship("User")
+
+
+class LecturePrepHistory(Base):
+    __tablename__ = "lecture_prep_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    title = Column(String(200), nullable=False)
+    original_filename = Column(String(300), nullable=False)
+    file_data = Column(LargeBinary, nullable=False)
+    # Denormalised so history survives course deletion
+    class_name = Column(String(200), nullable=True)
+    course_code = Column(String(50), nullable=True)
+    slide_data = Column(JSON, nullable=True)  # structured slide content for in-browser preview
+    saved_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class TutorApplicationStatusEnum(str, enum.Enum):

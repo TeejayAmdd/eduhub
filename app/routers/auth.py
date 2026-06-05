@@ -350,6 +350,34 @@ def forgot_send_code(
     return {"message": "Reset code sent", "email": user.email}
 
 
+@router.post("/forgot-password/verify-code")
+def forgot_verify_code(payload: dict, db: Session = Depends(get_db)):
+    """Check reset code is valid without consuming it — lets the frontend validate before showing the password form."""
+    email = (payload.get("email") or "").strip().lower()
+    code  = (payload.get("code")  or "").strip()
+
+    if not email or not code:
+        raise HTTPException(400, "Email and code are required")
+
+    record = (
+        db.query(models.PasswordResetCode)
+        .filter(
+            models.PasswordResetCode.email == email,
+            models.PasswordResetCode.is_used == False,
+        )
+        .order_by(models.PasswordResetCode.created_at.desc())
+        .first()
+    )
+    if not record:
+        raise HTTPException(400, "No active reset code found — please request a new one")
+    if record.expires_at < datetime.now(timezone.utc):
+        raise HTTPException(400, "Reset code has expired — please request a new one")
+    if record.code != code:
+        raise HTTPException(400, "Incorrect reset code")
+
+    return {"valid": True}
+
+
 @router.post("/forgot-password/reset")
 def forgot_reset(payload: dict, db: Session = Depends(get_db)):
     """

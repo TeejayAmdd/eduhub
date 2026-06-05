@@ -396,7 +396,7 @@ export default function AnalyticsPage() {
                           {c.live_session_count}
                         </p>
                         <p className="text-[10px] text-muted-foreground">sessions held</p>
-                        {c.live_att_rate !== undefined && c.live_session_count > 0 && (
+                        {c.live_session_count > 0 && (
                           <p className="text-xs text-muted-foreground">
                             avg <span className="font-semibold text-foreground">{c.live_attendance_rate}%</span> attendance
                           </p>

@@ -54,10 +54,17 @@ function LoginForm() {
         return
       }
 
+      const userId = decoded?.sub ?? ''
       localStorage.setItem('token', data.access_token)
       localStorage.setItem('role', actualRole ?? role)
-      localStorage.setItem('userId', decoded?.sub ?? '')
-      router.push(actualRole === 'student' ? '/student/overview' : '/overview')
+      localStorage.setItem('userId', userId)
+
+      const isFirstTime = !localStorage.getItem(`cortex_onboarded_${userId}`)
+      if (isFirstTime) {
+        router.push('/onboarding')
+      } else {
+        router.push(actualRole === 'student' ? '/student/overview' : '/overview')
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Login failed')
     } finally {

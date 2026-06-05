@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { BookOpen, GraduationCap, Loader2, ArrowLeft, ArrowRight, Check, Mail, RefreshCw } from 'lucide-react'
+import { BookOpen, GraduationCap, Loader2, ArrowLeft, ArrowRight, Check, Mail, RefreshCw, LogIn } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -115,7 +115,7 @@ export default function SignupPage() {
     setLoading(true); setError('')
     try {
       await auth.verifyEmail(email, verifyCode.trim())
-      router.push('/login?verified=1')
+      setStep(4) // show success screen
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Verification failed')
     } finally {
@@ -179,31 +179,35 @@ export default function SignupPage() {
         <div className="w-full max-w-md mx-auto">
           <div className="rounded-2xl bg-background/95 backdrop-blur-sm p-6 sm:p-8 space-y-8 shadow-xl lg:rounded-none lg:bg-transparent lg:backdrop-blur-none lg:p-0 lg:shadow-none">
 
-          {/* Header */}
-          <div>
-            <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider mb-1">
-              Step {step + 1} of {STEPS.length}
-            </p>
-            <h2 className="text-2xl font-bold">
-              {step === 0 && 'Who are you?'}
-              {step === 1 && 'Your details'}
-              {step === 2 && 'Set up your account'}
-              {step === 3 && 'Verify your email'}
-            </h2>
-          </div>
+          {/* Header — hidden on success screen */}
+          {step < 4 && (
+            <>
+              <div>
+                <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider mb-1">
+                  Step {step + 1} of {STEPS.length}
+                </p>
+                <h2 className="text-2xl font-bold">
+                  {step === 0 && 'Who are you?'}
+                  {step === 1 && 'Your details'}
+                  {step === 2 && 'Set up your account'}
+                  {step === 3 && 'Verify your email'}
+                </h2>
+              </div>
 
-          {/* Progress bar */}
-          <div className="flex gap-2">
-            {STEPS.map((_, i) => (
-              <div
-                key={i}
-                className={cn(
-                  'h-1.5 flex-1 rounded-full transition-all duration-300',
-                  i <= step ? 'bg-primary' : 'bg-muted'
-                )}
-              />
-            ))}
-          </div>
+              {/* Progress bar */}
+              <div className="flex gap-2">
+                {STEPS.map((_, i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      'h-1.5 flex-1 rounded-full transition-all duration-300',
+                      i <= step ? 'bg-primary' : 'bg-muted'
+                    )}
+                  />
+                ))}
+              </div>
+            </>
+          )}
 
           {/* ── Step 1: Role selection ── */}
           {step === 0 && (
@@ -479,49 +483,108 @@ export default function SignupPage() {
             </div>
           )}
 
-          {/* Error */}
-          {error && (
+          {/* ── Step 5: Success ── */}
+          {step === 4 && (
+            <div className="flex flex-col items-center text-center gap-6 py-4">
+              {/* Animated checkmark */}
+              <div className="w-24 h-24 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center animate-[scale-in_0.4s_ease-out]">
+                <div className="w-20 h-20 rounded-full bg-green-500 flex items-center justify-center shadow-lg shadow-green-500/30">
+                  <Check className="w-10 h-10 text-white stroke-[3]" />
+                </div>
+              </div>
+
+              {/* Message */}
+              <div className="space-y-2">
+                <h2 className="text-2xl font-bold">You're all set, {name.split(' ')[0]}!</h2>
+                <p className="text-muted-foreground text-sm leading-relaxed max-w-xs mx-auto">
+                  Your Cortex {role} account has been verified and activated.
+                  {role === 'student'
+                    ? ' You can now enroll in courses, attend live lectures, and track your progress.'
+                    : ' You can now create courses, schedule live lectures, and manage your students.'}
+                </p>
+              </div>
+
+              {/* Account summary pill */}
+              <div className="w-full rounded-xl border bg-muted/30 px-4 py-3 space-y-1.5 text-sm text-left">
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Name</span>
+                  <span className="font-medium text-foreground">{name}</span>
+                </div>
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Email</span>
+                  <span className="font-medium text-foreground truncate max-w-[55%]">{email}</span>
+                </div>
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Role</span>
+                  <span className="font-medium text-foreground capitalize">{role}</span>
+                </div>
+                <div className="flex justify-between text-muted-foreground">
+                  <span>{role === 'student' ? 'Matric No.' : 'Staff No.'}</span>
+                  <span className="font-medium text-foreground font-mono text-xs">
+                    {role === 'student' ? matricNumber : staffNumber}
+                  </span>
+                </div>
+              </div>
+
+              {/* CTA */}
+              <Button className="w-full gap-2" size="lg" onClick={() => router.push('/login?verified=1')}>
+                <LogIn className="w-4 h-4" />
+                Sign in to Cortex
+              </Button>
+
+              <p className="text-xs text-muted-foreground">
+                A welcome email has been sent to {email}
+              </p>
+            </div>
+          )}
+
+          {/* Error — hidden on success screen */}
+          {error && step < 4 && (
             <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-4 py-3">
               {error}
             </p>
           )}
 
-          {/* Navigation buttons */}
-          <div className="flex gap-3">
-            {step > 0 && step < 3 && (
-              <Button type="button" variant="outline" className="flex-1" onClick={back} disabled={loading}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
-              </Button>
-            )}
-            {step < 2 ? (
-              <Button type="button" className="flex-1" onClick={handleNext}>
-                Continue
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            ) : step === 2 ? (
-              <Button type="button" className="flex-1" onClick={handleSubmit} disabled={loading}>
-                {loading
-                  ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending code…</>
-                  : <><Mail className="w-4 h-4 mr-2" />Send Verification Code</>
-                }
-              </Button>
-            ) : (
-              <Button type="button" className="flex-1" onClick={handleVerify} disabled={loading || verifyCode.length !== 6}>
-                {loading
-                  ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Verifying…</>
-                  : <><Check className="w-4 h-4 mr-2" />Confirm & Create Account</>
-                }
-              </Button>
-            )}
-          </div>
+          {/* Navigation buttons — hidden on success screen */}
+          {step < 4 && (
+            <div className="flex gap-3">
+              {step > 0 && step < 3 && (
+                <Button type="button" variant="outline" className="flex-1" onClick={back} disabled={loading}>
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back
+                </Button>
+              )}
+              {step < 2 ? (
+                <Button type="button" className="flex-1" onClick={handleNext}>
+                  Continue
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              ) : step === 2 ? (
+                <Button type="button" className="flex-1" onClick={handleSubmit} disabled={loading}>
+                  {loading
+                    ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending code…</>
+                    : <><Mail className="w-4 h-4 mr-2" />Send Verification Code</>
+                  }
+                </Button>
+              ) : (
+                <Button type="button" className="flex-1" onClick={handleVerify} disabled={loading || verifyCode.length !== 6}>
+                  {loading
+                    ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Verifying…</>
+                    : <><Check className="w-4 h-4 mr-2" />Confirm & Create Account</>
+                  }
+                </Button>
+              )}
+            </div>
+          )}
 
-          <p className="text-center text-sm text-muted-foreground">
-            Already have an account?{' '}
-            <Link href="/login" className="font-medium text-primary hover:underline underline-offset-4">
-              Sign in
-            </Link>
-          </p>
+          {step < 4 && (
+            <p className="text-center text-sm text-muted-foreground">
+              Already have an account?{' '}
+              <Link href="/login" className="font-medium text-primary hover:underline underline-offset-4">
+                Sign in
+              </Link>
+            </p>
+          )}
           </div>
         </div>
       </div>

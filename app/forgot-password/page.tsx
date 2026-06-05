@@ -98,11 +98,18 @@ export default function ForgotPasswordPage() {
   }
 
   // ── Step 3: verify code ─────────────────────────────────────────────────────
-  const handleVerifyCode = (e: React.FormEvent) => {
+  const handleVerifyCode = async (e: React.FormEvent) => {
     e.preventDefault()
     if (code.trim().length !== 6) return err('Enter the 6-digit code sent to your email')
-    setError('')
-    setStep(4)
+    setLoading(true); setError('')
+    try {
+      await auth.forgotVerifyCode(confirmedEmail, code.trim())
+      setStep(4)
+    } catch (e: unknown) {
+      err(e instanceof Error ? e.message : 'Incorrect code — please try again')
+    } finally {
+      setLoading(false)
+    }
   }
 
   // ── Step 4: reset password ──────────────────────────────────────────────────
@@ -329,11 +336,11 @@ export default function ForgotPasswordPage() {
               )}
 
               <div className="flex gap-3">
-                <Button type="button" variant="outline" className="flex-1 h-11" onClick={() => { setStep(2); setCode(''); setError('') }}>
+                <Button type="button" variant="outline" className="flex-1 h-11" onClick={() => { setStep(2); setCode(''); setError('') }} disabled={loading}>
                   <ArrowLeft className="w-4 h-4 mr-1" /> Back
                 </Button>
-                <Button type="submit" className="flex-1 h-11">
-                  Verify Code
+                <Button type="submit" className="flex-1 h-11" disabled={loading || code.length !== 6}>
+                  {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Verifying…</> : 'Verify Code'}
                 </Button>
               </div>
 
