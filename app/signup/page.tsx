@@ -115,7 +115,10 @@ export default function SignupPage() {
     setLoading(true); setError('')
     try {
       await auth.verifyEmail(email, verifyCode.trim())
-      setStep(4) // show success screen
+      // Mark this browser session as having just created an account
+      // so the login page knows to show onboarding (1-hour window)
+      localStorage.setItem('cortex_new_account', Date.now().toString())
+      setStep(4)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Verification failed')
     } finally {

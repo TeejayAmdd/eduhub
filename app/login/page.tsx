@@ -59,8 +59,13 @@ function LoginForm() {
       localStorage.setItem('role', actualRole ?? role)
       localStorage.setItem('userId', userId)
 
-      const isFirstTime = !localStorage.getItem(`cortex_onboarded_${userId}`)
-      if (isFirstTime) {
+      // Show onboarding only if the account was just created in this browser
+      // (flag set during email verification, expires after 1 hour)
+      const newAccountTs = localStorage.getItem('cortex_new_account')
+      const isNewAccount = !!newAccountTs && Date.now() - parseInt(newAccountTs) < 60 * 60 * 1000
+      localStorage.removeItem('cortex_new_account')
+
+      if (isNewAccount) {
         router.push('/onboarding')
       } else {
         router.push(actualRole === 'student' ? '/student/overview' : '/overview')
