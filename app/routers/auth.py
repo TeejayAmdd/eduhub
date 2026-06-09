@@ -53,6 +53,53 @@ def seed_test_accounts(token: str, db: Session = Depends(get_db)):
         "is_verified": True,
     }))
     return {"results": created}
+
+
+@router.get("/seed-lecturer")
+def seed_lecturer(
+    token: str,
+    name: str,
+    email: str,
+    password: str,
+    staff_number: str,
+    department: str = "",
+    db: Session = Depends(get_db),
+):
+    """One-time: create a verified lecturer account directly in the DB.
+    Example:
+      /api/auth/seed-lecturer?token=...&name=Dr%20Jane%20Doe&email=jane@lasu.edu.ng
+        &password=secret123&staff_number=LASU/CS/002&department=Computer%20Science
+    """
+    import os
+    if token != os.environ.get("SEED_TOKEN", ""):
+        raise HTTPException(403, "Invalid token")
+
+    email = email.strip().lower()
+    if db.query(models.User).filter(models.User.email == email).first():
+        raise HTTPException(400, f"Email already exists: {email}")
+    if db.query(models.User).filter(models.User.staff_number == staff_number).first():
+        raise HTTPException(400, f"Staff number already exists: {staff_number}")
+
+    user = models.User(
+        name=name.strip(),
+        email=email,
+        password_hash=hash_password(password),
+        role=models.RoleEnum.lecturer,
+        staff_number=staff_number.strip(),
+        department=department.strip() or None,
+        is_active=True,
+        is_verified=True,
+    )
+    db.add(user)
+    db.commit()
+    return {
+        "result": "CREATED",
+        "login_with": staff_number.strip(),
+        "email": email,
+        "role": "lecturer",
+    }
+
+
 CODE_EXPIRY_MINUTES = 15
 
 

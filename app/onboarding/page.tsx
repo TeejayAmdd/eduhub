@@ -101,7 +101,7 @@ const LECTURER_SLIDES: Slide[] = [
     label: 'Overview',
     title: 'Everything you need to teach, in one place',
     description:
-      'Cortex gives you a full suite of teaching tools — from course creation and live lectures to assignments, grading, and performance analytics.',
+      'Cortex gives you a full suite of teaching tools from course creation and live lectures to assignments, grading, and performance analytics.',
     features: [
       'Manage all your courses from a single dashboard',
       'Monitor student activity and engagement in real time',

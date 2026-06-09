@@ -64,6 +64,10 @@ def _run_db_migrations():
     _add_column_if_missing("messages",     "attachment_size", "INTEGER")
     _add_column_if_missing("messages",     "attachment_data", "BYTEA")
     _add_column_if_missing("course_materials", "file_data", "BYTEA")
+    # lecture_prep_history columns added after the table's first deploy
+    _add_column_if_missing("lecture_prep_history", "class_name",  "VARCHAR(200)")
+    _add_column_if_missing("lecture_prep_history", "course_code", "VARCHAR(50)")
+    _add_column_if_missing("lecture_prep_history", "slide_data",  "JSON")
     # AI chat history table is created by create_all; no extra columns needed
 
 app = FastAPI(

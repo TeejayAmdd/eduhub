@@ -235,7 +235,9 @@ export default function ClassDashboardPage() {
   }
 
   const liveLecture = lectureList.find((l) => l.status === 'live')
-  const upcoming    = lectureList.filter((l) => l.status === 'scheduled')
+  const upcoming    = lectureList.filter(
+    (l) => l.status === 'scheduled' && l.scheduled_at && new Date(l.scheduled_at).getTime() > Date.now()
+  )
 
   if (loading) {
     return (
