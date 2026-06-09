@@ -12,12 +12,15 @@ log = logging.getLogger(__name__)
 def _send(to: str, subject: str, html: str) -> None:
     resend_key = os.environ.get("RESEND_API_KEY", "")
     if resend_key:
-        _send_via_resend(to, subject, html, resend_key)
+        success = _send_via_resend(to, subject, html, resend_key)
+        if not success:
+            _send_via_smtp(to, subject, html)
     else:
         _send_via_smtp(to, subject, html)
 
 
-def _send_via_resend(to: str, subject: str, html: str, api_key: str) -> None:
+def _send_via_resend(to: str, subject: str, html: str, api_key: str) -> bool:
+    """Returns True on success, False on failure (caller can fallback to SMTP)."""
     try:
         import resend
         resend.api_key = api_key
@@ -29,8 +32,10 @@ def _send_via_resend(to: str, subject: str, html: str, api_key: str) -> None:
             "html": html,
         })
         log.info("Email sent via Resend to %s", to)
+        return True
     except Exception as exc:
-        log.error("Resend failed for %s: %s", to, exc)
+        log.warning("Resend failed for %s (%s) — falling back to SMTP", to, exc)
+        return False
 
 
 def _send_via_smtp(to: str, subject: str, html: str) -> None:
