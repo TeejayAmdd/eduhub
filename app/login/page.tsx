@@ -61,8 +61,7 @@ function LoginForm() {
 
       // Show onboarding only if the account was just created in this browser
       // (flag set during email verification, expires after 1 hour)
-      const newAccountTs = localStorage.getItem('cortex_new_account')
-      const isNewAccount = !!newAccountTs && Date.now() - parseInt(newAccountTs) < 60 * 60 * 1000
+      const isNewAccount = localStorage.getItem('cortex_new_account') === '1'
       localStorage.removeItem('cortex_new_account')
 
       if (isNewAccount) {
