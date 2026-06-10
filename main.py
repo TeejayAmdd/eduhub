@@ -30,6 +30,7 @@ from app.routers.materials import router as materials_router
 from app.routers.converter import router as converter_router
 from app.routers.ai import router as ai_router
 from app.routers.lecture_prep import router as lecture_prep_router
+from app.routers.ca import router as ca_router
 
 # Ensure new models are registered with Base metadata before create_all
 import app.models  # noqa: F401 — side-effect import registers LiveSession, AttendanceCookie, CookieResponse
@@ -225,6 +226,7 @@ app.include_router(reports_router)
 app.include_router(converter_router)
 app.include_router(ai_router)
 app.include_router(lecture_prep_router)
+app.include_router(ca_router)
 
 
 @app.get("/")

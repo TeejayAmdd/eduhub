@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { CheckCircle2, Clock, AlertCircle, Calendar, ChevronRight, Upload } from 'lucide-react'
+import { CheckCircle2, Clock, AlertCircle, Calendar, ChevronRight, Upload, Search } from 'lucide-react'
 import { PageContainer } from '../_components/page-container'
 import { PageHeader } from '../_components/page-header'
 import { CreateAssignmentModal, CreateAssignmentData } from './_components/create-assignment-modal'
@@ -14,10 +14,17 @@ export default function AssignmentsPage() {
   const [data, setData] = useState<Assignment[]>([])
   const [classList, setClassList] = useState<Class[]>([])
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [courseFilter, setCourseFilter] = useState('')
 
   useEffect(() => {
     Promise.all([assignments.list(), classes.list()])
-      .then(([a, c]) => { setData(a); setClassList(c) })
+      .then(([a, c]) => {
+        const sorted = [...a].sort(
+          (x, y) => new Date(y.created_at).getTime() - new Date(x.created_at).getTime()
+        )
+        setData(sorted); setClassList(c)
+      })
       .catch(console.error)
       .finally(() => setLoading(false))
   }, [])
@@ -37,6 +44,12 @@ export default function AssignmentsPage() {
   const submissionLabel = (type: string) =>
     SUBMISSION_TYPES.find((t) => t.value === type)?.label ?? type
 
+  const filtered = data.filter((a) => {
+    const matchesSearch = a.title.toLowerCase().includes(search.trim().toLowerCase())
+    const matchesCourse = !courseFilter || a.class_id === Number(courseFilter)
+    return matchesSearch && matchesCourse
+  })
+
   return (
     <PageContainer>
       <PageHeader
@@ -45,13 +58,40 @@ export default function AssignmentsPage() {
         action={<CreateAssignmentModal courses={classList} onSubmit={handleCreate} />}
       />
 
+      {/* Search + course filter */}
+      {!loading && data.length > 0 && (
+        <div className="flex flex-col sm:flex-row gap-3 mb-4">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              className="w-full rounded-md border border-input bg-background pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              placeholder="Search by assignment title…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <select
+            className="rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring sm:w-56"
+            value={courseFilter}
+            onChange={(e) => setCourseFilter(e.target.value)}
+          >
+            <option value="">All courses</option>
+            {classList.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {loading ? (
         <p className="text-sm text-muted-foreground">Loading assignments...</p>
       ) : data.length === 0 ? (
         <p className="text-sm text-muted-foreground">No assignments yet. Create one above.</p>
+      ) : filtered.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No assignments match your search or filter.</p>
       ) : (
         <div className="space-y-4">
-          {data.map((a) => {
+          {filtered.map((a) => {
             const submitted = a.total_submissions - a.pending_count - a.overdue_count
             const rate = a.total_submissions > 0
               ? Math.round((submitted / a.total_submissions) * 100)

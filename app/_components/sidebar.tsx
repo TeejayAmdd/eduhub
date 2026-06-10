@@ -16,6 +16,7 @@ import {
   Bell,
   PenSquare,
   LayoutTemplate,
+  GraduationCap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -39,6 +40,7 @@ const navigationItems = [
   { name: "Exams", href: "/exams", icon: CheckSquare },
   { name: "Quizzes & Tests", href: "/quizzes", icon: PenSquare },
   { name: "Assignment Management", href: "/assignments", icon: FileText },
+  { name: "Continuous Assessment", href: "/ca", icon: GraduationCap },
   { name: "Schedule", href: "/schedule", icon: Calendar },
   { name: "Students", href: "/students", icon: Users },
   { name: "Messages", href: "/messages", icon: MessageSquare },

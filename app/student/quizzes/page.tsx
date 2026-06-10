@@ -34,7 +34,7 @@ export default function StudentQuizzesPage() {
 
   return (
     <PageContainer>
-      <div className="max-w-3xl space-y-6">
+      <div className="w-full max-w-7xl mx-auto space-y-6">
 
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -131,9 +131,9 @@ export default function StudentQuizzesPage() {
                           </div>
                           <div className="flex items-center gap-3 shrink-0">
                             <div className="text-right">
-                              <p className="text-sm font-bold">{q.my_score}/{q.my_total}</p>
-                              <p className={`text-xs font-semibold ${
-                                pct >= 70 ? 'text-green-600' : pct >= 50 ? 'text-amber-500' : 'text-red-500'
+                              <p className="text-sm font-semibold tabular-nums">{q.my_score}/{q.my_total}</p>
+                              <p className={`text-xs font-semibold tabular-nums ${
+                                pct >= 50 ? 'text-emerald-700 dark:text-emerald-400' : 'text-destructive'
                               }`}>{pct}%</p>
                             </div>
                             <Button

@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import { assignments, SUBMISSION_TYPES, type Assignment } from '@/lib/api'
+import { FormattedText } from '@/app/_components/formatted-text'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -186,9 +187,7 @@ export default function StudentAssignmentDetailPage() {
         {assignment.description && (
           <div className="rounded-2xl border bg-background p-4 sm:p-6 shadow-sm space-y-2">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Instructions</p>
-            <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground">
-              {assignment.description}
-            </p>
+            <FormattedText text={assignment.description} className="text-sm text-foreground" />
           </div>
         )}
 

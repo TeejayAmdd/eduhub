@@ -178,6 +178,21 @@ class Attendance(Base):
     )
 
 
+class CAOverride(Base):
+    """A lecturer's manual override of a student's CA total (out of 30) for a course."""
+    __tablename__ = "ca_overrides"
+
+    id = Column(Integer, primary_key=True, index=True)
+    class_id = Column(Integer, ForeignKey("classes.id"), nullable=False, index=True)
+    student_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    score = Column(Float, nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        Index("ix_ca_override_class_student", "class_id", "student_id", unique=True),
+    )
+
+
 class Schedule(Base):
     __tablename__ = "schedules"
 

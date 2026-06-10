@@ -231,6 +231,8 @@ class RosterEntry(BaseModel):
     file_url: Optional[str] = None
     score: Optional[float] = None
     feedback: Optional[str] = None
+    submission_id: Optional[int] = None
+    status: Optional[str] = None
 
 
 # ── Attendance ───────────────────────────────────────────
@@ -600,6 +602,7 @@ class QuizOut(BaseModel):
     attempt_count: int = 0           # lecturer: total attempts; student: 1 if submitted, 0 if not
     my_score: Optional[int] = None   # student: their score (None if not attempted)
     my_total: Optional[int] = None   # student: total questions at submission
+    is_locked: bool = False          # published AND a student has started: question set is frozen
 
     class Config:
         from_attributes = True

@@ -333,6 +333,29 @@ export interface RosterEntry {
   file_url: string | null
   score: number | null
   feedback: string | null
+  submission_id: number | null
+  status: string | null
+}
+
+export interface SubmissionOut {
+  id: number
+  assignment_id: number
+  student_id: number
+  submitted_at: string | null
+  status: string
+  file_url: string | null
+  score: number | null
+  feedback: string | null
+}
+
+export interface RosterResponse {
+  total: number
+  limit: number
+  offset: number
+  enrolled_total: number
+  submitted_count: number
+  pending_count: number
+  entries: RosterEntry[]
 }
 
 export const SUBMISSION_TYPES = [
@@ -354,13 +377,94 @@ export const assignments = {
       method: 'POST',
       body: JSON.stringify({ assignment_id, file_url }),
     }),
-  roster: (assignment_id: number) =>
-    request<RosterEntry[]>(`/api/assignments/${assignment_id}/roster`),
+  roster: (assignment_id: number, params?: { status?: string; search?: string; limit?: number; offset?: number }) =>
+    request<RosterResponse>(`/api/assignments/${assignment_id}/roster${qs({ ...params })}`),
   extend: (assignment_id: number, new_due_date: string) =>
     request<Assignment>(`/api/assignments/${assignment_id}/extend`, {
       method: 'PATCH',
       body: JSON.stringify({ new_due_date }),
     }),
+  gradeSubmission: (submission_id: number, data: { score?: number; feedback?: string; status?: string }) =>
+    request<SubmissionOut>(`/api/assignments/submissions/${submission_id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  autoGradeSubmission: (submission_id: number) =>
+    request<{ score: number; feedback: string }>(`/api/assignments/submissions/${submission_id}/auto-grade`, {
+      method: 'POST',
+    }),
+  autoGradeAll: (assignment_id: number) =>
+    request<{ graded: number; remaining: number; skipped: { student_name: string; reason: string }[] }>(
+      `/api/assignments/${assignment_id}/auto-grade-all`, { method: 'POST' }),
+  generate: (params: {
+    file: File
+    class_id?: number
+    format: string
+    difficulty: string
+    num_items: number
+    instructions?: string
+  }) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+    const form = new FormData()
+    form.append('file', params.file)
+    if (params.class_id) form.append('class_id', String(params.class_id))
+    form.append('format', params.format)
+    form.append('difficulty', params.difficulty)
+    form.append('num_items', String(params.num_items))
+    if (params.instructions) form.append('instructions', params.instructions)
+    return fetch(`${BASE}/api/assignments/generate`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    }).then(async (res) => {
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: 'Generation failed' }))
+        throw new Error(typeof err.detail === 'string' ? err.detail : 'Generation failed')
+      }
+      return res.json() as Promise<{ title: string; description: string }>
+    })
+  },
+}
+
+// ── Continuous Assessment ───────────────────────────────────────────────────────
+export interface CAStudent {
+  student_id: number
+  student_name: string
+  matric_number: string | null
+  assignment_avg: number | null
+  assignment_count: number
+  quiz_avg_score: number | null
+  quiz_avg_total: number | null
+  quiz_avg_pct: number | null
+  quiz_count: number
+  attendance_present: number
+  attendance_total: number
+  attendance_pct: number
+  attendance_points: number
+  ca_override: number | null
+}
+
+export interface CAReport {
+  class_id: number
+  class_name: string
+  course_code: string | null
+  ca_max: number
+  total: number
+  limit: number
+  offset: number
+  students: CAStudent[]
+}
+
+export const ca = {
+  get: (classId: number, params?: { search?: string; limit?: number; offset?: number }) =>
+    request<CAReport>(`/api/ca/${classId}${qs({ ...params })}`),
+  setOverride: (classId: number, student_id: number, score: number) =>
+    request<{ student_id: number; score: number }>(`/api/ca/${classId}/override`, {
+      method: 'PUT',
+      body: JSON.stringify({ student_id, score }),
+    }),
+  clearOverride: (classId: number, student_id: number) =>
+    request<void>(`/api/ca/${classId}/override/${student_id}`, { method: 'DELETE' }),
 }
 
 // ── Attendance ────────────────────────────────────────────────────────────────
@@ -565,6 +669,7 @@ export interface Quiz {
   attempt_count: number
   my_score: number | null
   my_total: number | null
+  is_locked?: boolean
 }
 
 export interface QuizQuestion {
@@ -600,6 +705,27 @@ export interface QuizResultDetail {
   submitted_at: string | null
 }
 
+export interface QuizResultsResponse {
+  total: number
+  limit: number
+  offset: number
+  enrolled_total: number
+  submitted_count: number
+  not_submitted_count: number
+  avg_pct: number | null
+  results: QuizResultDetail[]
+}
+
+// Build a ?key=value query string, skipping empty values.
+const qs = (params: Record<string, string | number | undefined>) => {
+  const p = new URLSearchParams()
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== '') p.set(k, String(v))
+  }
+  const s = p.toString()
+  return s ? `?${s}` : ''
+}
+
 export const quizzes = {
   list: (class_id?: number) =>
     request<Quiz[]>(`/api/quizzes${class_id ? `?class_id=${class_id}` : ''}`),
@@ -624,8 +750,38 @@ export const quizzes = {
     request<QuizAttempt>(`/api/quizzes/${id}/submit`, { method: 'POST', body: JSON.stringify({ answers }) }),
   myResult: (id: number) =>
     request<QuizAttempt>(`/api/quizzes/${id}/my-result`),
-  results: (id: number) =>
-    request<QuizResultDetail[]>(`/api/quizzes/${id}/results`),
+  results: (id: number, params?: { search?: string; limit?: number; offset?: number }) =>
+    request<QuizResultsResponse>(`/api/quizzes/${id}/results${qs({ ...params })}`),
+  generate: (params: {
+    class_id: number
+    file: File
+    title?: string
+    num_questions: number
+    duration_minutes: number
+    difficulty: string
+    instructions?: string
+  }) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+    const form = new FormData()
+    form.append('file', params.file)
+    form.append('class_id', String(params.class_id))
+    if (params.title) form.append('title', params.title)
+    form.append('num_questions', String(params.num_questions))
+    form.append('duration_minutes', String(params.duration_minutes))
+    form.append('difficulty', params.difficulty)
+    if (params.instructions) form.append('instructions', params.instructions)
+    return fetch(`${BASE}/api/quizzes/generate`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    }).then(async (res) => {
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: 'Generation failed' }))
+        throw new Error(typeof err.detail === 'string' ? err.detail : 'Generation failed')
+      }
+      return res.json() as Promise<Quiz>
+    })
+  },
 }
 
 // ── Exams ─────────────────────────────────────────────────────────────────────

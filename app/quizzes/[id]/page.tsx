@@ -4,12 +4,12 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
-  ArrowLeft, PenSquare, Plus, Trash2, Edit3, Check,
-  X, Eye, EyeOff, Clock, Users, BookOpen, Loader2,
-  CheckCircle2, Hash, Trophy, AlertCircle,
+  ArrowLeft, Plus, Trash2, Edit3, Check,
+  Eye, EyeOff, Clock, Users, BookOpen, Loader2,
+  FileText, Hash, AlertCircle, Lock, Search,
 } from 'lucide-react'
 import { PageContainer } from '@/app/_components/page-container'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -41,6 +41,11 @@ export default function QuizBuilderPage() {
   const [quiz, setQuiz] = useState<Quiz | null>(null)
   const [questions, setQuestions] = useState<QuizQuestion[]>([])
   const [results, setResults] = useState<QuizResultDetail[]>([])
+  const [resultsMeta, setResultsMeta] = useState({
+    total: 0, enrolled_total: 0, submitted_count: 0, not_submitted_count: 0, avg_pct: null as number | null,
+  })
+  const [resultsSearch, setResultsSearch] = useState('')
+  const [loadingMoreResults, setLoadingMoreResults] = useState(false)
   const [classList, setClassList] = useState<Class[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<Tab>('questions')
@@ -68,11 +73,28 @@ export default function QuizBuilderPage() {
     }
   }
 
-  const loadResults = async () => {
+  const RESULTS_PAGE = 50
+
+  const loadResults = async (search: string) => {
     try {
-      const r = await quizzes.results(Number(id))
-      setResults(r)
+      const r = await quizzes.results(Number(id), { search, limit: RESULTS_PAGE, offset: 0 })
+      setResults(r.results)
+      setResultsMeta({
+        total: r.total, enrolled_total: r.enrolled_total,
+        submitted_count: r.submitted_count, not_submitted_count: r.not_submitted_count,
+        avg_pct: r.avg_pct,
+      })
     } catch {}
+  }
+
+  const loadMoreResults = async () => {
+    setLoadingMoreResults(true)
+    try {
+      const r = await quizzes.results(Number(id), { search: resultsSearch, limit: RESULTS_PAGE, offset: results.length })
+      setResults((prev) => [...prev, ...r.results])
+    } finally {
+      setLoadingMoreResults(false)
+    }
   }
 
   useEffect(() => {
@@ -80,8 +102,10 @@ export default function QuizBuilderPage() {
   }, [id])
 
   useEffect(() => {
-    if (tab === 'results') loadResults()
-  }, [tab])
+    if (tab !== 'results') return
+    const t = setTimeout(() => loadResults(resultsSearch), 350)
+    return () => clearTimeout(t)
+  }, [tab, resultsSearch])
 
   const togglePublish = async () => {
     if (!quiz) return
@@ -166,17 +190,13 @@ export default function QuizBuilderPage() {
   if (!quiz) return null
 
   const course = classList.find((c) => c.id === quiz.class_id)
-  const submitted = results.filter((r) => r.score !== null)
-  const avgPct = submitted.length > 0
-    ? Math.round(submitted.reduce((s, r) => s + (r.percentage ?? 0), 0) / submitted.length)
-    : null
 
   return (
     <PageContainer>
-      <div className="max-w-3xl space-y-6">
+      <div className="w-full max-w-7xl mx-auto space-y-6">
 
         {/* Back */}
-        <Button variant="ghost" size="sm" asChild className="-ml-2">
+        <Button variant="ghost" size="sm" asChild className="-ml-2 text-muted-foreground">
           <Link href="/quizzes">
             <ArrowLeft className="w-4 h-4 mr-2" />Back to Quizzes
           </Link>
@@ -186,9 +206,9 @@ export default function QuizBuilderPage() {
         <Card>
           <CardContent className="pt-6 space-y-4">
             <div className="flex items-start justify-between gap-4">
-              <div className="space-y-1 flex-1 min-w-0">
+              <div className="space-y-2 flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-2xl font-bold">{quiz.title}</h1>
+                  <h1 className="text-2xl font-semibold tracking-tight">{quiz.title}</h1>
                   <Badge variant={quiz.is_published ? 'default' : 'secondary'}>
                     {quiz.is_published ? 'Published' : 'Draft'}
                   </Badge>
@@ -196,17 +216,17 @@ export default function QuizBuilderPage() {
                 {quiz.description && (
                   <p className="text-sm text-muted-foreground">{quiz.description}</p>
                 )}
-                <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap pt-1">
+                <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap pt-0.5">
                   {course && (
                     <span className="flex items-center gap-1.5">
                       <BookOpen className="w-4 h-4" />{course.name}
                     </span>
                   )}
                   <span className="flex items-center gap-1.5">
-                    <Clock className="w-4 h-4" />{quiz.duration_minutes} minutes
+                    <Clock className="w-4 h-4" />{quiz.duration_minutes} min
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <PenSquare className="w-4 h-4" />{questions.length} questions
+                    <FileText className="w-4 h-4" />{questions.length} questions
                   </span>
                   <span className="flex items-center gap-1.5">
                     <Users className="w-4 h-4" />{quiz.attempt_count} submissions
@@ -226,31 +246,33 @@ export default function QuizBuilderPage() {
               </Button>
             </div>
 
-            {!quiz.is_published && questions.length === 0 && (
-              <div className="flex items-center gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
+            {!quiz.is_published && (
+              <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
                 <AlertCircle className="w-4 h-4 shrink-0" />
-                Add at least one question before publishing.
+                {questions.length === 0
+                  ? 'Add at least one question before publishing.'
+                  : 'This quiz is a draft — publish it so students can take it.'}
               </div>
             )}
-            {!quiz.is_published && questions.length > 0 && (
-              <div className="flex items-center gap-2 rounded-lg bg-blue-50 dark:bg-blue-950/30 px-4 py-3 text-sm text-blue-700 dark:text-blue-400">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                Quiz is a draft — publish it so students can take it.
+            {quiz.is_locked && (
+              <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+                <Lock className="w-4 h-4 shrink-0" />
+                Students have started this quiz. You can edit existing questions, but adding or deleting is locked.
               </div>
             )}
           </CardContent>
         </Card>
 
         {/* Tabs */}
-        <div className="flex gap-2">
+        <div className="inline-flex gap-1 p-1 rounded-lg bg-muted">
           {(['questions', 'results'] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 tab === t
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground hover:text-foreground'
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               {t === 'questions' ? `Questions (${questions.length})` : `Results (${quiz.attempt_count})`}
@@ -261,29 +283,31 @@ export default function QuizBuilderPage() {
         {/* ── Questions tab ── */}
         {tab === 'questions' && (
           <div className="space-y-3">
-            <div className="flex justify-end">
-              <Button onClick={openAdd} size="sm" className="gap-2">
-                <Plus className="w-4 h-4" />Add Question
-              </Button>
-            </div>
+            {!quiz.is_locked && (
+              <div className="flex justify-end">
+                <Button onClick={openAdd} size="sm" className="gap-2">
+                  <Plus className="w-4 h-4" />Add Question
+                </Button>
+              </div>
+            )}
 
             {questions.length === 0 ? (
               <Card>
                 <CardContent className="py-12 flex flex-col items-center gap-3 text-center">
-                  <PenSquare className="w-8 h-8 text-muted-foreground/40" />
+                  <FileText className="w-8 h-8 text-muted-foreground/40" />
                   <p className="font-medium">No questions yet</p>
-                  <p className="text-sm text-muted-foreground">Click "Add Question" to start building your quiz.</p>
+                  <p className="text-sm text-muted-foreground">Add your first question to start building the test.</p>
                 </CardContent>
               </Card>
             ) : (
               questions.map((q, idx) => (
-                <Card key={q.id}>
+                <Card key={q.id} className="group">
                   <CardContent className="pt-4 pb-4">
                     <div className="flex items-start gap-3">
-                      <span className="flex items-center justify-center w-7 h-7 rounded-full bg-primary/10 text-primary text-xs font-bold shrink-0 mt-0.5">
+                      <span className="flex items-center justify-center w-6 h-6 rounded-md bg-muted text-xs font-semibold shrink-0 mt-0.5 tabular-nums">
                         {idx + 1}
                       </span>
-                      <div className="flex-1 space-y-2 min-w-0">
+                      <div className="flex-1 space-y-2.5 min-w-0">
                         <p className="text-sm font-medium leading-snug">{q.text}</p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                           {(['a', 'b', 'c', 'd'] as const).map((opt) => {
@@ -293,33 +317,35 @@ export default function QuizBuilderPage() {
                             return (
                               <div
                                 key={opt}
-                                className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm ${
+                                className={`flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm ${
                                   isCorrect
-                                    ? 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 font-medium'
-                                    : 'bg-muted/50 text-muted-foreground'
+                                    ? 'border-emerald-600/40 bg-emerald-500/[0.06] text-emerald-700 dark:text-emerald-400 font-medium'
+                                    : 'border-border text-muted-foreground'
                                 }`}
                               >
-                                <span className={`font-bold text-xs w-4 shrink-0 ${isCorrect ? 'text-green-600' : ''}`}>
+                                <span className="font-semibold text-xs w-4 shrink-0">
                                   {OPTION_LABELS[opt]}
                                 </span>
-                                {isCorrect && <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />}
+                                {isCorrect && <Check className="w-3.5 h-3.5 shrink-0" />}
                                 <span className="truncate">{text}</span>
                               </div>
                             )
                           })}
                         </div>
                       </div>
-                      <div className="flex gap-1 shrink-0">
+                      <div className="flex gap-0.5 shrink-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                         <Button variant="ghost" size="icon" onClick={() => openEdit(q)}>
                           <Edit3 className="w-4 h-4" />
                         </Button>
-                        <Button
-                          variant="ghost" size="icon"
-                          className="text-muted-foreground hover:text-destructive"
-                          onClick={() => deleteQuestion(q.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        {!quiz.is_locked && (
+                          <Button
+                            variant="ghost" size="icon"
+                            className="text-muted-foreground hover:text-destructive"
+                            onClick={() => deleteQuestion(q.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -332,40 +358,40 @@ export default function QuizBuilderPage() {
         {/* ── Results tab ── */}
         {tab === 'results' && (
           <div className="space-y-4">
-            {results.length > 0 && avgPct !== null && (
-              <div className="grid grid-cols-3 gap-4">
-                <Card>
-                  <CardContent className="pt-5 text-center">
-                    <p className="text-2xl font-bold text-green-600">{submitted.length}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Submitted</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-5 text-center">
-                    <p className="text-2xl font-bold text-amber-500">{results.length - submitted.length}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Not submitted</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-5 text-center">
-                    <p className="text-2xl font-bold text-primary">{avgPct}%</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Avg score</p>
-                  </CardContent>
-                </Card>
+            <div className="grid grid-cols-3 gap-px overflow-hidden rounded-xl border bg-border">
+              <div className="bg-card px-4 py-5 text-center">
+                <p className="text-2xl font-semibold tabular-nums">{resultsMeta.submitted_count}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Submitted</p>
               </div>
-            )}
+              <div className="bg-card px-4 py-5 text-center">
+                <p className="text-2xl font-semibold tabular-nums">{resultsMeta.not_submitted_count}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Not submitted</p>
+              </div>
+              <div className="bg-card px-4 py-5 text-center">
+                <p className="text-2xl font-semibold tabular-nums">{resultsMeta.avg_pct !== null ? `${resultsMeta.avg_pct}%` : '—'}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Average</p>
+              </div>
+            </div>
+
+            {/* Search */}
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                className="w-full rounded-md border border-input bg-background pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                placeholder="Search student by name or matric number…"
+                value={resultsSearch}
+                onChange={(e) => setResultsSearch(e.target.value)}
+              />
+            </div>
 
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <Trophy className="w-4 h-4 text-primary" />
-                  Student Results
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+              <CardContent className="pt-5">
+                <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-1">
+                  Student results
+                </h3>
                 {results.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-6 text-center">
-                    No students have submitted yet.
+                    {resultsSearch ? `No students match “${resultsSearch}”.` : 'No students enrolled yet.'}
                   </p>
                 ) : (
                   <div className="divide-y divide-border">
@@ -389,23 +415,30 @@ export default function QuizBuilderPage() {
                         <div className="shrink-0 text-right">
                           {r.score !== null ? (
                             <>
-                              <p className="text-sm font-bold">{r.score}/{r.total}</p>
-                              <p className={`text-xs font-semibold ${
-                                (r.percentage ?? 0) >= 70 ? 'text-green-600'
-                                : (r.percentage ?? 0) >= 50 ? 'text-amber-500'
-                                : 'text-red-500'
+                              <p className="text-sm font-semibold tabular-nums">{r.score}/{r.total}</p>
+                              <p className={`text-xs font-semibold tabular-nums ${
+                                (r.percentage ?? 0) >= 50 ? 'text-emerald-700 dark:text-emerald-400' : 'text-destructive'
                               }`}>
                                 {r.percentage}%
                               </p>
                             </>
                           ) : (
-                            <Badge variant="outline" className="text-muted-foreground">
-                              Not submitted
+                            <Badge variant="outline" className="text-muted-foreground font-normal">
+                              Pending
                             </Badge>
                           )}
                         </div>
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {results.length < resultsMeta.total && (
+                  <div className="flex justify-center pt-4">
+                    <Button variant="outline" size="sm" onClick={loadMoreResults} disabled={loadingMoreResults} className="gap-2">
+                      {loadingMoreResults && <Loader2 className="w-4 h-4 animate-spin" />}
+                      Load more ({results.length} of {resultsMeta.total})
+                    </Button>
                   </div>
                 )}
               </CardContent>
@@ -418,15 +451,14 @@ export default function QuizBuilderPage() {
       <Dialog open={qDialogOpen} onOpenChange={setQDialogOpen}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <PenSquare className="w-5 h-5 text-primary" />
+            <DialogTitle>
               {editingId !== null ? 'Edit Question' : 'Add Question'}
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Question *</label>
+              <label className="text-sm font-medium">Question</label>
               <textarea
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
                 rows={3}
@@ -439,12 +471,11 @@ export default function QuizBuilderPage() {
             {(['a', 'b', 'c', 'd'] as const).map((opt) => (
               <div key={opt} className="space-y-1.5">
                 <label className="text-sm font-medium flex items-center gap-2">
-                  <span className="flex items-center justify-center w-5 h-5 rounded bg-primary/10 text-primary text-xs font-bold">
+                  <span className="flex items-center justify-center w-5 h-5 rounded bg-muted text-xs font-semibold">
                     {opt.toUpperCase()}
                   </span>
                   Option {opt.toUpperCase()}
-                  {(opt === 'a' || opt === 'b') && <span className="text-destructive">*</span>}
-                  {(opt === 'c' || opt === 'd') && <span className="text-muted-foreground text-xs">(optional)</span>}
+                  {(opt === 'c' || opt === 'd') && <span className="text-muted-foreground text-xs font-normal">(optional)</span>}
                 </label>
                 <input
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
@@ -456,7 +487,7 @@ export default function QuizBuilderPage() {
             ))}
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Correct Answer *</label>
+              <label className="text-sm font-medium">Correct answer</label>
               <div className="grid grid-cols-4 gap-2">
                 {(['a', 'b', 'c', 'd'] as const).map((opt) => {
                   const optText = qForm[`option_${opt}` as keyof QForm]
@@ -467,18 +498,15 @@ export default function QuizBuilderPage() {
                       type="button"
                       disabled={!available}
                       onClick={() => setQForm((f) => ({ ...f, correct_option: opt }))}
-                      className={`rounded-lg border-2 py-2.5 text-sm font-bold transition-all ${
+                      className={`rounded-lg border py-2.5 text-sm font-semibold transition-colors ${
                         qForm.correct_option === opt
-                          ? 'border-green-500 bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400'
+                          ? 'border-foreground bg-foreground text-background'
                           : available
-                            ? 'border-input hover:border-primary text-muted-foreground'
+                            ? 'border-input hover:bg-muted/60 text-muted-foreground'
                             : 'border-input opacity-30 cursor-not-allowed text-muted-foreground'
                       }`}
                     >
                       {opt.toUpperCase()}
-                      {qForm.correct_option === opt && (
-                        <CheckCircle2 className="w-3.5 h-3.5 mx-auto mt-0.5" />
-                      )}
                     </button>
                   )
                 })}

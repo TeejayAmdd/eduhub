@@ -4,14 +4,15 @@ import { useState, useRef, useEffect } from 'react'
 import {
   Upload, FileText, Sparkles, Download, BookOpen,
   ChevronRight, ChevronLeft, CheckCircle2, Loader2, ArrowLeft,
-  LayoutTemplate, Save, History, Lightbulb, Plus,
-  PanelLeftOpen, PanelLeftClose, Calendar, Eye, X,
-  BarChart2, Columns2, Quote, ImagePlus, SlidersHorizontal,
+  LayoutTemplate, Save, History, Plus,
+  Calendar, Eye, X,
+  BarChart2, Columns2, ImagePlus, SlidersHorizontal,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { PageContainer } from '@/app/_components/page-container'
 import { cn } from '@/lib/utils'
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -76,15 +77,6 @@ function formatHistoryDate(iso: string | null) {
   if (diff === 0) return 'Today'
   if (diff === 1) return 'Yesterday'
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
-}
-
-function groupHistoryByDate(items: HistoryItem[]) {
-  const groups: Record<string, HistoryItem[]> = {}
-  items.forEach(item => {
-    const label = formatHistoryDate(item.saved_at)
-    ;(groups[label] ??= []).push(item)
-  })
-  return groups
 }
 
 // ── Step indicator ────────────────────────────────────────────────────────────
@@ -261,7 +253,7 @@ function SlidePreviewModal({
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function LecturePrepPage() {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [view, setView] = useState<'home' | 'wizard'>('home')
 
   // History
   const [history, setHistory]           = useState<HistoryItem[]>([])
@@ -436,6 +428,9 @@ export default function LecturePrepPage() {
     setLogo(null)
   }
 
+  const newPresentation = () => { startNew(); setView('wizard') }
+  const goHome = () => { startNew(); setView('home'); refreshHistory() }
+
   const openPreview = (
     title: string,
     downloadFn: () => void,
@@ -449,9 +444,6 @@ export default function LecturePrepPage() {
     setPreviewOpen(true)
   }
 
-  const grouped = groupHistoryByDate(history)
-  const groupKeys = Object.keys(grouped)
-
   return (
     <>
     <SlidePreviewModal
@@ -462,132 +454,96 @@ export default function LecturePrepPage() {
       onDownload={previewDownload ?? (() => {})}
       onClose={() => setPreviewOpen(false)}
     />
-    <div className="flex flex-1 min-h-0 overflow-hidden">
-
-      {/* ── Left sidebar ─────────────────────────────────────────────── */}
-      <div className={cn(
-        'flex-col border-r bg-muted/10 shrink-0 transition-all duration-200 overflow-hidden',
-        sidebarOpen ? 'hidden md:flex w-64 xl:w-72' : 'hidden',
-      )}>
-        {/* Sidebar header */}
-        <div className="px-4 pt-5 pb-4 border-b shrink-0">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <LayoutTemplate className="h-4 w-4 text-primary" />
+    <PageContainer>
+      {view === 'home' ? (
+        /* ── Home / main page ── */
+        <div className="w-full max-w-7xl mx-auto space-y-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+                <LayoutTemplate className="h-6 w-6" />
+                Lecture Prep with Cortex
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Turn your lecture material into a professional PPTX — built by Cortex AI.
+              </p>
             </div>
-            <div className="min-w-0">
-              <p className="font-bold text-sm leading-tight">Lecture Prep</p>
-              <p className="text-[10px] text-muted-foreground">Powered by Cortex AI</p>
-            </div>
+            <Button onClick={newPresentation} className="gap-2">
+              <Plus className="h-4 w-4" />
+              New presentation
+            </Button>
           </div>
+
+          {/* Big CTA */}
           <button
-            onClick={startNew}
-            className="w-full flex items-center gap-2 rounded-lg border border-dashed border-border px-3 py-2 text-sm text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-colors"
+            onClick={newPresentation}
+            className="w-full rounded-2xl border-2 border-dashed border-border px-6 py-10 text-center transition-colors hover:border-primary/40 hover:bg-primary/5"
           >
-            <Plus className="h-3.5 w-3.5" />
-            New presentation
-          </button>
-        </div>
-
-        {/* History list */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-3 py-3">
-          <div className="flex items-center gap-1.5 px-1 mb-2">
-            <History className="h-3.5 w-3.5 text-muted-foreground" />
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Saved Presentations</p>
-          </div>
-
-          {loadingHistory ? (
-            <div className="flex justify-center py-6">
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            <div className="mx-auto mb-3 h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Sparkles className="h-6 w-6 text-primary" />
             </div>
-          ) : historyError ? (
-            <p className="text-xs text-destructive px-1 py-4 text-center leading-relaxed">
-              {historyError}
-            </p>
-          ) : groupKeys.length === 0 ? (
-            <p className="text-xs text-muted-foreground px-1 py-4 text-center leading-relaxed">
-              Presentations you save to a course will appear here.
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {groupKeys.map(dateLabel => (
-                <div key={dateLabel}>
-                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide px-1 mb-1 flex items-center gap-1">
-                    <Calendar className="h-3 w-3" /> {dateLabel}
-                  </p>
-                  {grouped[dateLabel].map(item => (
-                    <button
-                      key={item.history_id}
-                      onClick={() => openPreview(
-                        item.title,
-                        () => redownload(item.history_id, item.title),
-                        undefined,
-                        `/api/lecture-prep/history/${item.history_id}/slides`,
-                      )}
-                      className="w-full text-left rounded-lg px-2.5 py-2 group hover:bg-muted/60 transition-colors"
-                      title="Click to preview"
-                    >
-                      <p className="text-xs font-medium truncate group-hover:text-primary transition-colors">
-                        {item.title}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5 truncate flex items-center gap-1">
-                        <Eye className="h-2.5 w-2.5 shrink-0" />
-                        {item.course_code ? `${item.course_code} · ` : ''}{item.class_name ?? 'Personal save'}
-                      </p>
-                    </button>
-                  ))}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Tips */}
-        <div className="border-t px-4 py-4 shrink-0 space-y-2">
-          <div className="flex items-center gap-1.5 mb-1">
-            <Lightbulb className="h-3.5 w-3.5 text-amber-500" />
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Tips</p>
-          </div>
-          {[
-            'PDF files give the best results',
-            'Add focus points for exam prep slides',
-            'Speaker notes help during live lectures',
-            'Save to a course — students can download instantly',
-          ].map((tip, i) => (
-            <p key={i} className="text-[11px] text-muted-foreground leading-relaxed flex gap-1.5">
-              <span className="text-primary shrink-0">·</span>{tip}
-            </p>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Main content ──────────────────────────────────────────────── */}
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-
-        {/* Top bar */}
-        <div className="shrink-0 border-b px-4 sm:px-6 py-3 flex items-center gap-3 bg-background">
-          <button
-            onClick={() => setSidebarOpen(v => !v)}
-            className="hidden md:flex h-8 w-8 rounded-lg items-center justify-center hover:bg-muted transition-colors"
-            title={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
-          >
-            {sidebarOpen
-              ? <PanelLeftClose className="h-4 w-4 text-muted-foreground" />
-              : <PanelLeftOpen  className="h-4 w-4 text-muted-foreground" />
-            }
+            <p className="font-semibold">Create a new presentation</p>
+            <p className="text-sm text-muted-foreground mt-1">Upload a PDF, DOCX or TXT and Cortex builds your slides</p>
           </button>
-          <div className="flex items-center gap-2">
-            <LayoutTemplate className="h-5 w-5 text-primary" />
-            <h1 className="font-bold text-base">Lecture Prep with Cortex</h1>
-          </div>
-          <p className="hidden sm:block text-xs text-muted-foreground">
-            Turn your lecture material into a professional PPTX presentation
-          </p>
-        </div>
 
-        {/* Wizard area */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="max-w-2xl mx-auto px-4 sm:px-8 py-8 space-y-8">
+          {/* Saved presentations */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-1.5">
+              <History className="h-4 w-4 text-muted-foreground" />
+              <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Saved presentations</h2>
+            </div>
+            {loadingHistory ? (
+              <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+            ) : historyError ? (
+              <p className="text-sm text-destructive py-6 text-center">{historyError}</p>
+            ) : history.length === 0 ? (
+              <div className="rounded-xl border bg-card py-12 text-center text-sm text-muted-foreground">
+                Presentations you save will appear here.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {history.map(item => (
+                  <button
+                    key={item.history_id}
+                    onClick={() => openPreview(
+                      item.title,
+                      () => redownload(item.history_id, item.title),
+                      undefined,
+                      `/api/lecture-prep/history/${item.history_id}/slides`,
+                    )}
+                    className="text-left rounded-xl border bg-card p-4 space-y-2.5 transition-colors hover:border-primary/40 hover:bg-muted/30"
+                    title="Click to preview"
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                        <LayoutTemplate className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{item.title}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {item.course_code ? `${item.course_code} · ` : ''}{item.class_name ?? 'Personal save'}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                      <Calendar className="h-3 w-3" />{formatHistoryDate(item.saved_at)}
+                      <span className="text-muted-foreground/50">·</span>
+                      <Eye className="h-3 w-3" />Preview
+                    </p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        /* ── Wizard ── */
+        <div className="w-full max-w-3xl mx-auto space-y-6">
+          <Button variant="ghost" size="sm" onClick={goHome} className="-ml-2 text-muted-foreground">
+            <ArrowLeft className="mr-2 h-4 w-4" />Back to Lecture Prep
+          </Button>
+
+          <div className="space-y-8">
 
             {/* Step indicator */}
             <div className="flex items-center gap-0">
@@ -935,8 +891,8 @@ export default function LecturePrepPage() {
             )}
           </div>
         </div>
-      </div>
-    </div>
+      )}
+    </PageContainer>
     </>
   )
 }
