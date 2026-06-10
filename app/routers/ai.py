@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 import app.models as models
 from app.database import get_db
 from app.auth import get_current_user
+from app.utils.ai_limits import enforce_ai_quota
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/ai", tags=["AI Study Assistant"])
@@ -228,6 +229,9 @@ def chat(
     materials_text = _get_materials_text(class_id, db)
     if not materials_text:
         raise HTTPException(400, "No PDF materials available for this class yet. Ask your lecturer to upload course materials.")
+
+    # Global subscription cap (per-student daily limit is enforced above)
+    enforce_ai_quota(db, current_user.id, "chat")
 
     system_prompt = f"""You are an AI study assistant for {cls.name} ({cls.course_code or ''}).
 Your job is to help students understand their course material.

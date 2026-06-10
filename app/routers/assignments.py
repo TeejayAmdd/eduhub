@@ -13,6 +13,8 @@ from app.auth import get_current_user, require_lecturer
 from app.schemas import AssignmentCreate, AssignmentOut, ExtendDeadline, SubmissionCreate, SubmissionUpdate, SubmissionOut, RosterEntry
 from app.utils.notifications import push
 from app.utils.roster import enrolled_students_query, paginate_students, clamp_page
+from app.utils.ai_limits import enforce_ai_quota
+from app.utils.notif_prefs import emails_enabled
 import app.models as models
 
 log = logging.getLogger(__name__)
@@ -105,7 +107,7 @@ def create_assignment(
              body=f"Due {assignment.due_date.strftime('%d %b %Y')} · {class_.name}",
              link="/student/assignments")
         student = db.query(models.User).filter(models.User.id == e.student_id).first()
-        if student:
+        if student and emails_enabled(student.notification_prefs):
             student_info.append((student.email, student.name))
 
     def _send_new_assignment(info, course, title, due):
@@ -254,6 +256,8 @@ async def generate_assignment(
     if not material_text.strip():
         raise HTTPException(400, "Could not read any text from that file. Please upload a text-based PDF.")
 
+    enforce_ai_quota(db, current_user.id, "assignment_generate")
+
     try:
         result = _generate_assignment(material_text, format, difficulty, num_items, instructions, course_name)
     except HTTPException:
@@ -325,7 +329,7 @@ def extend_deadline(
              body=f"New deadline: {new_date_str} (was {old_date_str}) · {class_.name}",
              link="/student/assignments")
         student = db.query(models.User).filter(models.User.id == e.student_id).first()
-        if student:
+        if student and emails_enabled(student.notification_prefs):
             student_info.append((student.email, student.name))
 
     def _send_extended(info, course, title, old, new):
@@ -351,6 +355,13 @@ def submit_assignment(
     if current_user.role != models.RoleEnum.student:
         raise HTTPException(status_code=403, detail="Only students can submit")
 
+    # Link-only submissions — must be a valid shareable URL
+    file_url = (payload.file_url or "").strip()
+    if not file_url:
+        raise HTTPException(status_code=400, detail="A submission link is required.")
+    if not (file_url.startswith("http://") or file_url.startswith("https://")):
+        raise HTTPException(status_code=400, detail="Submission must be a valid link starting with http:// or https://")
+
     assignment = db.query(models.Assignment).filter(models.Assignment.id == assignment_id).first()
     if not assignment:
         raise HTTPException(status_code=404, detail="Assignment not found")
@@ -362,7 +373,7 @@ def submit_assignment(
     if existing:
         existing.status = models.SubmissionStatusEnum.submitted
         existing.submitted_at = datetime.utcnow()
-        existing.file_url = payload.file_url
+        existing.file_url = file_url
         db.commit()
         db.refresh(existing)
         return existing
@@ -370,7 +381,7 @@ def submit_assignment(
     submission = models.Submission(
         assignment_id=assignment_id,
         student_id=current_user.id,
-        file_url=payload.file_url,
+        file_url=file_url,
         submitted_at=datetime.utcnow(),
         status=models.SubmissionStatusEnum.submitted,
     )
@@ -384,7 +395,7 @@ def submit_assignment(
              body=f"{assignment.title} · {class_.name}",
              link="/assignments")
         lecturer = db.query(models.User).filter(models.User.id == class_.lecturer_id).first()
-        if lecturer:
+        if lecturer and emails_enabled(lecturer.notification_prefs):
             def _send_submitted(lec_email, lec_name, stu_name, a_title, course):
                 from app.services.email_service import send_assignment_submitted
                 send_assignment_submitted(lec_email, lec_name, stu_name, a_title, course)
@@ -416,7 +427,7 @@ def update_submission(
              body=f"{assignment.title} — Score: {payload.score}" if assignment else f"Score: {payload.score}",
              link="/student/grades")
         student = db.query(models.User).filter(models.User.id == submission.student_id).first()
-        if student and assignment:
+        if student and assignment and emails_enabled(student.notification_prefs):
             class_ = db.query(models.Class).filter(models.Class.id == assignment.class_id).first()
             score_str = str(payload.score)
             if payload.feedback:
@@ -499,7 +510,23 @@ def _fetch_submission_text(url: str) -> tuple[Optional[str], str]:
         text = data.decode("utf-8", errors="ignore")[:MAX_MATERIAL_CHARS]
         return (text, "") if text.strip() else (None, "The file was empty")
 
-    return None, "Link isn’t a readable document — only PDF, text or Google Docs/Drive files can be auto-graded"
+    # Word .docx (also matches other zip-based Office files; python-docx will reject those)
+    is_docx = (
+        "wordprocessingml" in ctype
+        or fetch_url.lower().endswith(".docx")
+        or data[:2] == b"PK"
+    )
+    if is_docx:
+        try:
+            import io
+            from docx import Document
+            d = Document(io.BytesIO(data))
+            text = "\n".join(p.text for p in d.paragraphs)[:MAX_MATERIAL_CHARS]
+            return (text, "") if text.strip() else (None, "Word document has no readable text")
+        except Exception:
+            return None, "Could not read the Word document (use PDF or a Google Doc link instead)"
+
+    return None, "Link isn’t a readable document — only PDF, Word or Google Docs/Drive files can be auto-graded"
 
 
 def _ai_grade(title: str, description: str, student_text: str) -> dict:
@@ -555,6 +582,8 @@ def auto_grade_submission(
     if not text:
         raise HTTPException(422, reason)
 
+    enforce_ai_quota(db, current_user.id, "assignment_grade")
+
     try:
         return _ai_grade(assignment.title, assignment.description or "", text)
     except HTTPException:
@@ -593,6 +622,12 @@ def auto_grade_all(
         if not text:
             skipped.append({"student_name": name, "reason": reason})
             continue
+        # Respect AI rate limits — stop the batch cleanly if the quota is hit
+        try:
+            enforce_ai_quota(db, current_user.id, "assignment_grade")
+        except HTTPException as exc:
+            skipped.append({"student_name": name, "reason": "Daily AI limit reached — try again later"})
+            break
         try:
             result = _ai_grade(assignment.title, assignment.description or "", text)
         except Exception:

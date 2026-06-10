@@ -254,7 +254,7 @@ export default function StudentAssignmentDetailPage() {
                 <div className="space-y-2">
                   <Label className="flex items-center gap-1.5 text-sm font-medium">
                     <LinkIcon className="w-3.5 h-3.5 text-primary shrink-0" />
-                    Submission Link
+                    Shareable link to your PDF or Word document
                   </Label>
                   <Input
                     value={link}
@@ -269,7 +269,10 @@ export default function StudentAssignmentDetailPage() {
                     spellCheck={false}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Upload your work to a file host, then paste the shareable link above.
+                    Upload your PDF or Word doc to <span className="font-medium text-foreground">Google Drive</span> or
+                    {' '}<span className="font-medium text-foreground">OneDrive</span> and paste the link.
+                    Set sharing to <span className="font-medium text-foreground">&ldquo;Anyone with the link&rdquo;</span> so
+                    it can be opened and auto-graded.
                   </p>
                 </div>
 

@@ -53,6 +53,7 @@ class User(Base):
     level = Column(String(20))                        # students only, e.g. "100L"
     is_active = Column(Boolean, default=True)
     is_verified = Column(Boolean, default=False)   # email must be confirmed before login
+    notification_prefs = Column(JSON, nullable=True)   # {category: bool} overrides; None = all defaults
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     enrollments = relationship("Enrollment", back_populates="student", foreign_keys="Enrollment.student_id")
@@ -191,6 +192,16 @@ class CAOverride(Base):
     __table_args__ = (
         Index("ix_ca_override_class_student", "class_id", "student_id", unique=True),
     )
+
+
+class AIUsage(Base):
+    """One row per Claude/AI call — used to rate-limit per user and protect the subscription."""
+    __tablename__ = "ai_usage"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    kind = Column(String(40), nullable=False, index=True)   # chat | quiz_generate | assignment_generate | assignment_grade | lecture_prep
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
 
 class Schedule(Base):

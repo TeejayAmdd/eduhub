@@ -1,8 +1,15 @@
 from sqlalchemy.orm import Session
 import app.models as models
+from app.utils.notif_prefs import is_enabled
 
 
 def push(db: Session, user_id: int, type: str, title: str, body: str = None, link: str = None):
+    # Respect the recipient's notification settings — skip entirely if they've
+    # turned this category off (no DB row, no WebSocket push).
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if user is not None and not is_enabled(getattr(user, "notification_prefs", None), type):
+        return
+
     notif = models.Notification(
         user_id=user_id,
         type=type,

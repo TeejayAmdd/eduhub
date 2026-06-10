@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Plus, Loader2, Sparkles, Upload, FileText, X, ChevronDown } from 'lucide-react'
-import { SUBMISSION_TYPES, assignments, type Class } from '@/lib/api'
+import { assignments, type Class } from '@/lib/api'
 
 export interface CreateAssignmentData {
   title: string
@@ -49,7 +49,7 @@ export function CreateAssignmentModal({ courses, onSubmit }: CreateAssignmentMod
   const [description, setDescription] = useState('')
   const [dueDate, setDueDate] = useState('')
   const [classId, setClassId] = useState<number | null>(null)
-  const [submissionType, setSubmissionType] = useState('any')
+  const submissionType = 'google_drive'   // link-only submissions
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -66,7 +66,7 @@ export function CreateAssignmentModal({ courses, onSubmit }: CreateAssignmentMod
 
   const reset = () => {
     setTitle(''); setDescription(''); setDueDate('')
-    setClassId(null); setSubmissionType('any'); setError('')
+    setClassId(null); setError('')
     setAiPanel(false); setAiFile(null); setAiFormat('questions')
     setAiDifficulty('medium'); setAiNumItems('5'); setAiInstructions('')
     setAiError(''); setAiDrafted(false)
@@ -285,18 +285,9 @@ export function CreateAssignmentModal({ courses, onSubmit }: CreateAssignmentMod
             </Select>
           </div>
 
-          <div>
-            <label className="text-sm font-medium">Submission Mode</label>
-            <Select value={submissionType} onValueChange={setSubmissionType}>
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Select submission mode" />
-              </SelectTrigger>
-              <SelectContent>
-                {SUBMISSION_TYPES.map((t) => (
-                  <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="flex items-start gap-2 rounded-lg border bg-muted/40 px-3 py-2.5 text-xs text-muted-foreground">
+            <FileText className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>Students submit a <span className="font-medium text-foreground">shareable link</span> to their PDF or Word document (Google Drive / OneDrive) — no file uploads.</span>
           </div>
 
           <div>

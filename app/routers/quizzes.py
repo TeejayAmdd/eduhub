@@ -12,6 +12,8 @@ from app.database import get_db
 from app.auth import get_current_user, require_lecturer
 from app.utils.notifications import push
 from app.utils.roster import enrolled_students_query, paginate_students, clamp_page
+from app.utils.ai_limits import enforce_ai_quota
+from app.utils.notif_prefs import emails_enabled
 from app.schemas import (
     QuizCreate, QuizUpdate, QuizOut,
     QuizQuestionCreate, QuizQuestionOut,
@@ -179,7 +181,7 @@ def update_quiz(
                  body=f"{quiz.duration_minutes} min · {class_.name}",
                  link="/student/quizzes")
             student = db.query(models.User).filter(models.User.id == e.student_id).first()
-            if student:
+            if student and emails_enabled(student.notification_prefs):
                 student_info.append((student.email, student.name))
 
         def _send_quiz_pub(info, course, title, duration):
@@ -492,6 +494,8 @@ async def generate_quiz(
     material_text = _extract_material_text(raw, file.content_type or "")
     if not material_text.strip():
         raise HTTPException(400, "Could not read any text from that file. Please upload a text-based PDF.")
+
+    enforce_ai_quota(db, current_user.id, "quiz_generate")
 
     try:
         questions = _generate_questions(material_text, num_questions, difficulty, instructions)

@@ -6,7 +6,7 @@ import { useTheme } from 'next-themes'
 import {
   User, Lock, Bell, Info, LogOut, CheckCircle2, AlertCircle,
   Eye, EyeOff, Loader2, Shield, GraduationCap, Hash, Mail, BadgeCheck,
-  Moon, Sun, Monitor, Trash2, TriangleAlert, RefreshCw,
+  Moon, Sun, Monitor, Trash2, TriangleAlert, RefreshCw, ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { users, type UserProfile } from '@/lib/api'
+import { users, notifications, type UserProfile, type NotificationPrefs } from '@/lib/api'
 import { useMemo } from 'react'
 
 const LEVELS = ['100L', '200L', '300L', '400L', '500L', '600L']
@@ -92,13 +92,24 @@ export function SettingsPage({ role }: { role: 'lecturer' | 'student' }) {
   const [pwSaving, setPwSaving] = useState(false)
   const [pwStatus, setPwStatus] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
 
-  // ── Notification prefs (local only) ──────────────────────────────────────────
-  const [notifPrefs, setNotifPrefs] = useState({
-    assignments: true,
-    messages: true,
-    exams: true,
-    announcements: true,
-  })
+  // ── Notification prefs (synced with backend, real-time) ──────────────────────
+  const [notifPrefs, setNotifPrefs] = useState<NotificationPrefs | null>(null)
+
+  useEffect(() => {
+    notifications.getPreferences().then(setNotifPrefs).catch(() => {})
+  }, [])
+
+  const toggleNotif = async (key: keyof NotificationPrefs) => {
+    if (!notifPrefs) return
+    const prev = notifPrefs
+    const next = { ...notifPrefs, [key]: !notifPrefs[key] }
+    setNotifPrefs(next)  // optimistic — applies immediately
+    try {
+      await notifications.setPreferences({ [key]: next[key] })
+    } catch {
+      setNotifPrefs(prev)  // revert if the save failed
+    }
+  }
 
   // ── Load profile ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -212,6 +223,19 @@ export function SettingsPage({ role }: { role: 'lecturer' | 'student' }) {
     router.push('/login')
   }
 
+  // ── Settings sections (left nav) ──────────────────────────────────────────────
+  const SECTIONS = [
+    { id: 'profile',       label: 'Profile',       icon: User },
+    { id: 'account',       label: 'Account',       icon: Info },
+    { id: 'password',      label: 'Password',      icon: Lock },
+    { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'appearance',    label: 'Appearance',    icon: Moon },
+    { id: 'session',       label: 'Session',       icon: LogOut },
+    { id: 'danger',        label: 'Danger Zone',   icon: Trash2, danger: true },
+  ] as const
+  const [activeSection, setActiveSection] = useState<typeof SECTIONS[number]['id']>('profile')
+  const [mobileOpen, setMobileOpen] = useState(false)   // mobile drill-down: list → section
+
   if (profileLoading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -221,9 +245,51 @@ export function SettingsPage({ role }: { role: 'lecturer' | 'student' }) {
   }
 
   return (
-    <div className="max-w-2xl space-y-8">
+    <div className="w-full max-w-5xl mx-auto">
+      <div className="flex flex-col md:flex-row gap-6">
 
-      {/* ── 1. Profile ───────────────────────────────────────────────────────── */}
+        {/* ── Settings nav (full list on mobile, sidebar on desktop) ── */}
+        <nav className={cn('md:w-56 lg:w-60 shrink-0 md:block', mobileOpen ? 'hidden' : 'block')}>
+          <div className="flex flex-col gap-1 rounded-xl border overflow-hidden md:rounded-none md:border-0 md:overflow-visible">
+            {SECTIONS.map((s) => {
+              const Icon = s.icon
+              const active = activeSection === s.id
+              const isDanger = 'danger' in s && s.danger
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => { setActiveSection(s.id); setMobileOpen(true) }}
+                  className={cn(
+                    'flex items-center gap-2.5 w-full text-left text-sm font-medium transition-colors px-3.5 py-3 border-b last:border-b-0 md:px-3 md:py-2 md:border-0 md:rounded-lg',
+                    active
+                      ? (isDanger ? 'text-destructive md:bg-destructive/10' : 'text-foreground md:bg-muted')
+                      : (isDanger ? 'text-destructive/80 md:hover:bg-destructive/5' : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'),
+                  )}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  {s.label}
+                  <ChevronRight className="h-4 w-4 ml-auto text-muted-foreground/40 md:hidden" />
+                </button>
+              )
+            })}
+          </div>
+        </nav>
+
+        {/* ── Active section (its own page on mobile) ── */}
+        <div className={cn('flex-1 min-w-0 space-y-4 md:space-y-6 md:block', mobileOpen ? 'block' : 'hidden')}>
+
+          {/* Back to list — mobile only */}
+          <button
+            type="button"
+            onClick={() => setMobileOpen(false)}
+            className="md:hidden flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Settings
+          </button>
+
+      {activeSection === 'profile' && (
       <section>
         <SectionHeader icon={User} title="Profile" />
         <Card>
@@ -307,8 +373,9 @@ export function SettingsPage({ role }: { role: 'lecturer' | 'student' }) {
           </CardContent>
         </Card>
       </section>
+      )}
 
-      {/* ── 2. Account Information (read-only) ───────────────────────────────── */}
+      {activeSection === 'account' && (
       <section>
         <SectionHeader icon={Info} title="Account Information" />
         <Card>
@@ -347,8 +414,9 @@ export function SettingsPage({ role }: { role: 'lecturer' | 'student' }) {
           </CardContent>
         </Card>
       </section>
+      )}
 
-      {/* ── 3. Change Password ────────────────────────────────────────────────── */}
+      {activeSection === 'password' && (
       <section>
         <SectionHeader icon={Lock} title="Change Password" />
         <Card>
@@ -425,48 +493,71 @@ export function SettingsPage({ role }: { role: 'lecturer' | 'student' }) {
           </CardContent>
         </Card>
       </section>
+      )}
 
-      {/* ── 4. Notification Preferences ──────────────────────────────────────── */}
+      {activeSection === 'notifications' && (
       <section>
         <SectionHeader icon={Bell} title="Notification Preferences" />
         <Card>
-          <CardContent className="pt-6 space-y-1">
-            {(role === 'lecturer'
-              ? [
-                  { key: 'assignments', label: 'Assignment submissions', desc: 'When a student submits an assignment' },
-                  { key: 'messages',    label: 'New messages',          desc: 'When a student sends you a message' },
-                  { key: 'exams',       label: 'Exam reminders',        desc: 'Upcoming scheduled exams' },
-                  { key: 'announcements', label: 'System announcements', desc: 'Platform-wide notices' },
-                ]
-              : [
-                  { key: 'assignments', label: 'New assignments',        desc: 'When a lecturer posts a new assignment' },
-                  { key: 'messages',    label: 'New messages',           desc: 'When a lecturer sends you a message' },
-                  { key: 'exams',       label: 'Exam results',           desc: 'When your exam results are published' },
-                  { key: 'announcements', label: 'Announcements',        desc: 'Class and school-wide announcements' },
-                ]
-            ).map((item, i, arr) => (
-              <div
-                key={item.key}
-                className={cn(
-                  'flex items-center justify-between py-3.5',
-                  i < arr.length - 1 && 'border-b border-border'
-                )}
-              >
-                <div>
-                  <p className="text-sm font-medium">{item.label}</p>
-                  <p className="text-xs text-muted-foreground">{item.desc}</p>
-                </div>
-                <Toggle
-                  checked={notifPrefs[item.key as keyof typeof notifPrefs]}
-                  onChange={() => setNotifPrefs((p) => ({ ...p, [item.key]: !p[item.key as keyof typeof notifPrefs] }))}
-                />
+          <CardContent className="pt-6">
+            <p className="text-xs text-muted-foreground mb-3">
+              Turn a category off and you&apos;ll stop receiving those notifications immediately.
+            </p>
+            {!notifPrefs ? (
+              <div className="flex justify-center py-6">
+                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
               </div>
-            ))}
+            ) : (
+              <div className="space-y-1">
+                {/* Email master switch */}
+                <div className="flex items-center justify-between py-3.5 gap-4 border-b border-border">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">Email notifications</p>
+                    <p className="text-xs text-muted-foreground">Emails for assignments, grades, deadlines and your weekly timetable (account & verification emails are always sent)</p>
+                  </div>
+                  <Toggle checked={notifPrefs.email} onChange={() => toggleNotif('email')} />
+                </div>
+                <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground pt-3 pb-1">In-app notifications</p>
+                {(role === 'lecturer'
+                  ? [
+                      { key: 'messages',      label: 'New messages',          desc: 'When someone sends you a message' },
+                      { key: 'submissions',   label: 'Assignment submissions', desc: 'When a student submits work — off by default (noisy in large classes)' },
+                      { key: 'announcements', label: 'Announcements',         desc: 'Class and system announcements' },
+                      { key: 'schedule',      label: 'Timetable updates',     desc: 'Weekly timetable and schedule changes' },
+                    ] as const
+                  : [
+                      { key: 'messages',      label: 'New messages',          desc: 'When a lecturer sends you a message' },
+                      { key: 'assignments',   label: 'Assignments',           desc: 'New assignments, quizzes and deadline changes' },
+                      { key: 'grades',        label: 'Grades & results',      desc: 'When your work is graded' },
+                      { key: 'announcements', label: 'Announcements',         desc: 'Class and school-wide announcements' },
+                      { key: 'schedule',      label: 'Timetable updates',     desc: 'Weekly timetable and schedule changes' },
+                    ] as const
+                ).map((item, i, arr) => (
+                  <div
+                    key={item.key}
+                    className={cn(
+                      'flex items-center justify-between py-3.5 gap-4',
+                      i < arr.length - 1 && 'border-b border-border'
+                    )}
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">{item.label}</p>
+                      <p className="text-xs text-muted-foreground">{item.desc}</p>
+                    </div>
+                    <Toggle
+                      checked={notifPrefs[item.key]}
+                      onChange={() => toggleNotif(item.key)}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </section>
+      )}
 
-      {/* ── 5. Appearance ────────────────────────────────────────────────────── */}
+      {activeSection === 'appearance' && (
       <section>
         <SectionHeader icon={Moon} title="Appearance" />
         <Card>
@@ -498,8 +589,9 @@ export function SettingsPage({ role }: { role: 'lecturer' | 'student' }) {
           </CardContent>
         </Card>
       </section>
+      )}
 
-      {/* ── 6. Session ───────────────────────────────────────────────────────── */}
+      {activeSection === 'session' && (
       <section>
         <SectionHeader icon={LogOut} title="Session" />
         <Card className="border-destructive/30">
@@ -517,8 +609,9 @@ export function SettingsPage({ role }: { role: 'lecturer' | 'student' }) {
           </CardContent>
         </Card>
       </section>
+      )}
 
-      {/* ── 7. Delete Account ────────────────────────────────────────────────── */}
+      {activeSection === 'danger' && (
       <section>
         <SectionHeader icon={Trash2} title="Danger Zone" />
         <Card className="border-destructive">
@@ -645,6 +738,10 @@ export function SettingsPage({ role }: { role: 'lecturer' | 'student' }) {
           </CardContent>
         </Card>
       </section>
+      )}
+
+        </div>
+      </div>
     </div>
   )
 }

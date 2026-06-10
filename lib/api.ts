@@ -818,11 +818,28 @@ export interface Notification {
   created_at: string
 }
 
+export interface NotificationPrefs {
+  messages: boolean
+  announcements: boolean
+  assignments: boolean
+  grades: boolean
+  schedule: boolean
+  enrollment: boolean
+  submissions: boolean
+  email: boolean
+}
+
 export const notifications = {
   list: () => request<Notification[]>('/api/notifications'),
   unreadCount: () => request<{ count: number }>('/api/notifications/unread-count'),
   markRead: (id: number) => request(`/api/notifications/${id}/read`, { method: 'PATCH' }),
   markAllRead: () => request('/api/notifications/read-all', { method: 'PATCH' }),
+  getPreferences: () => request<NotificationPrefs>('/api/notifications/preferences'),
+  setPreferences: (prefs: Partial<NotificationPrefs>) =>
+    request<NotificationPrefs>('/api/notifications/preferences', {
+      method: 'PUT',
+      body: JSON.stringify({ prefs }),
+    }),
 }
 
 // ── Search ────────────────────────────────────────────────────────────────────

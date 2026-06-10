@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session, joinedload
 import app.models as models
 from app.database import get_db
 from app.auth import get_current_user
+from app.utils.ai_limits import enforce_ai_quota
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/lecture-prep", tags=["Lecture Prep"])
@@ -555,6 +556,8 @@ async def generate_slides(
         "include_diagrams": include_diagrams,
         "enhanced_layouts": enhanced_layouts,
     }
+
+    enforce_ai_quota(db, current_user.id, "lecture_prep")
 
     try:
         slide_data = _call_claude(material_text, prefs)

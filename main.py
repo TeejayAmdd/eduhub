@@ -53,6 +53,7 @@ def _run_db_migrations():
     _add_column_if_missing("attendance",   "lecture_id",      "INTEGER")
     _add_column_if_missing("live_sessions","lecture_id",      "INTEGER")
     _add_column_if_missing("users",        "is_verified",     "BOOLEAN DEFAULT TRUE")
+    _add_column_if_missing("users",        "notification_prefs", "JSON")
     _add_column_if_missing("quiz_attempts","answers",         "TEXT")
     _add_column_if_missing("quiz_attempts","score",           "INTEGER")
     _add_column_if_missing("quiz_attempts","total",           "INTEGER")
@@ -86,6 +87,7 @@ def _run_weekly_digest_startup():
     import app.models as models
     from app.routers.other_routers import _get_week_bounds, _ensure_week_lectures, _build_rows
     from app.utils.notifications import push
+    from app.utils.notif_prefs import emails_enabled
     from app.services.email_service import send_weekly_timetable
 
     db: Session = SessionLocal()
@@ -124,7 +126,8 @@ def _run_weekly_digest_startup():
                  title=f"Your teaching timetable: {week_label}",
                  body=f"{len(rows)} class slot(s) this week",
                  link="/schedule")
-            send_weekly_timetable(lecturer.email, lecturer.name, week_label, rows, 'lecturer')
+            if emails_enabled(lecturer.notification_prefs):
+                send_weekly_timetable(lecturer.email, lecturer.name, week_label, rows, 'lecturer')
             total_recipients += 1
 
         db.commit()
@@ -151,7 +154,8 @@ def _run_weekly_digest_startup():
                  title=f"Your timetable: {week_label}",
                  body=f"{len(rows)} class slot(s) this week",
                  link="/student/schedule")
-            send_weekly_timetable(student.email, student.name, week_label, rows, 'student')
+            if emails_enabled(student.notification_prefs):
+                send_weekly_timetable(student.email, student.name, week_label, rows, 'student')
             total_recipients += 1
 
         db.commit()
@@ -186,6 +190,11 @@ async def startup_event():
     # Run weekly digest in background thread (non-blocking)
     t = threading.Thread(target=_run_weekly_digest_startup, daemon=True)
     t.start()
+
+# Per-client rate limiting (added before CORS so CORS remains the outermost layer
+# and 429 responses still carry the right CORS headers)
+from app.utils.ratelimit import RateLimitMiddleware
+app.add_middleware(RateLimitMiddleware)
 
 # CORS — allow the frontend to talk to this backend
 app.add_middleware(

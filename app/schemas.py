@@ -1,11 +1,32 @@
-from pydantic import BaseModel, EmailStr
+import re
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional, List
 from datetime import datetime, date, time
 from app.models import RoleEnum, StatusEnum, SubmissionStatusEnum, LectureStatusEnum, TutorApplicationStatusEnum
 
 
+# Control / non-printable characters (keeps \t \n \r) — stripped from all input strings
+_CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+MAX_INPUT_CHARS = 50_000
+
+
+class SanitizedModel(BaseModel):
+    """Base for inbound payloads. Strips null/control bytes, trims whitespace and caps
+    string length on EVERY field. SQL injection is prevented by the ORM (parameterised
+    queries); stored XSS is prevented by React escaping all rendered output."""
+
+    @field_validator("*", mode="before")
+    @classmethod
+    def _sanitize_strings(cls, v):
+        if isinstance(v, str):
+            v = _CONTROL_RE.sub("", v).strip()
+            if len(v) > MAX_INPUT_CHARS:
+                v = v[:MAX_INPUT_CHARS]
+        return v
+
+
 # ── User ────────────────────────────────────────────────
-class UserCreate(BaseModel):
+class UserCreate(SanitizedModel):
     name: str
     email: EmailStr
     password: str
@@ -37,24 +58,24 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 
-class LoginRequest(BaseModel):
+class LoginRequest(SanitizedModel):
     identifier: str   # matric number, staff number, or email
     password: str
 
 
-class ProfileUpdate(BaseModel):
+class ProfileUpdate(SanitizedModel):
     name: Optional[str] = None
     department: Optional[str] = None
     level: Optional[str] = None           # students only
 
 
-class PasswordChange(BaseModel):
+class PasswordChange(SanitizedModel):
     current_password: str
     new_password: str
 
 
 # ── Class ────────────────────────────────────────────────
-class ClassCreate(BaseModel):
+class ClassCreate(SanitizedModel):
     name: str
     subject: str
     course_code: Optional[str] = None
@@ -166,7 +187,7 @@ class StudentDetailOut(BaseModel):
 
 
 # ── Assignment ───────────────────────────────────────────
-class AssignmentCreate(BaseModel):
+class AssignmentCreate(SanitizedModel):
     title: str
     description: Optional[str] = None
     class_id: int
@@ -197,7 +218,7 @@ class AssignmentOut(BaseModel):
 
 
 # ── Submission ───────────────────────────────────────────
-class SubmissionCreate(BaseModel):
+class SubmissionCreate(SanitizedModel):
     assignment_id: int
     file_url: Optional[str] = None
 
@@ -261,7 +282,7 @@ class AttendanceOut(BaseModel):
 
 
 # ── Schedule ─────────────────────────────────────────────
-class ScheduleCreate(BaseModel):
+class ScheduleCreate(SanitizedModel):
     class_id: int
     day_of_week: str
     start_time: time
@@ -312,7 +333,7 @@ class ScheduleWithClassOut(BaseModel):
 
 
 # ── Exam ─────────────────────────────────────────────────
-class ExamCreate(BaseModel):
+class ExamCreate(SanitizedModel):
     title: str
     class_id: int
     exam_date: datetime
@@ -331,7 +352,7 @@ class ExamOut(BaseModel):
         from_attributes = True
 
 
-class ExamResultCreate(BaseModel):
+class ExamResultCreate(SanitizedModel):
     exam_id: int
     student_id: int
     score: float
@@ -351,7 +372,7 @@ class ExamResultOut(BaseModel):
 
 
 # ── Message ──────────────────────────────────────────────
-class MessageCreate(BaseModel):
+class MessageCreate(SanitizedModel):
     recipient_id: int
     subject: Optional[str] = None
     body: str
@@ -403,7 +424,7 @@ class MessageThreadOut(BaseModel):
 
 
 # ── Announcement ─────────────────────────────────────────
-class AnnouncementCreate(BaseModel):
+class AnnouncementCreate(SanitizedModel):
     class_id: Optional[int]
     title: str
     body: str
@@ -444,13 +465,13 @@ class DashboardStats(BaseModel):
 
 
 # ── Lecture ───────────────────────────────────────────────
-class InstantLectureCreate(BaseModel):
+class InstantLectureCreate(SanitizedModel):
     class_id: int
     title: str
     description: str
 
 
-class LectureCreate(BaseModel):
+class LectureCreate(SanitizedModel):
     class_id: int
     title: str
     description: Optional[str] = None
@@ -482,7 +503,7 @@ class ClassStatsOut(BaseModel):
 
 
 # ── Live Session ──────────────────────────────────────────
-class SessionStartRequest(BaseModel):
+class SessionStartRequest(SanitizedModel):
     class_id: int
 
 
@@ -544,7 +565,7 @@ class LectureHistoryOut(BaseModel):
 
 
 # ── Quiz / Test ───────────────────────────────────────────
-class QuizCreate(BaseModel):
+class QuizCreate(SanitizedModel):
     class_id: int
     title: str
     description: Optional[str] = None
@@ -553,7 +574,7 @@ class QuizCreate(BaseModel):
     available_until: Optional[datetime] = None
 
 
-class QuizUpdate(BaseModel):
+class QuizUpdate(SanitizedModel):
     title: Optional[str] = None
     description: Optional[str] = None
     duration_minutes: Optional[int] = None
@@ -562,7 +583,7 @@ class QuizUpdate(BaseModel):
     is_published: Optional[bool] = None
 
 
-class QuizQuestionCreate(BaseModel):
+class QuizQuestionCreate(SanitizedModel):
     text: str
     option_a: str
     option_b: str
@@ -654,7 +675,7 @@ class CourseMaterialOut(BaseModel):
 
 
 # ── Study Hub ─────────────────────────────────────────────
-class TutorApplyRequest(BaseModel):
+class TutorApplyRequest(SanitizedModel):
     motivation: str
 
 
@@ -676,7 +697,7 @@ class SelectTutorsRequest(BaseModel):
     student_ids: List[int]   # exactly 2
 
 
-class HubBroadcastCreate(BaseModel):
+class HubBroadcastCreate(SanitizedModel):
     message: str
 
 
@@ -692,7 +713,7 @@ class HubBroadcastOut(BaseModel):
         from_attributes = True
 
 
-class HubLiveSessionCreate(BaseModel):
+class HubLiveSessionCreate(SanitizedModel):
     title: str
 
 
